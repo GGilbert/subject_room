@@ -88,9 +88,43 @@ button{font-family:inherit;cursor:pointer;color:inherit;background:none;border:0
 .wf-t small{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);letter-spacing:0}
 .wf-step.on .wf-t{color:#fff}
 .sb{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
-body.insp .wf-t small{display:none}
-body.insp .ttl{font-size:16px}
-body.insp .wf-line{flex-basis:12px}
+.main{container-type:inline-size;container-name:main}
+@media (max-width:1200px){
+  .top{grid-template-columns:280px 1fr}
+  .body{grid-template-columns:280px 1fr auto}
+  .user .org{display:none}
+  .user{white-space:nowrap}
+  .chat-h{padding:14px;letter-spacing:.06em;white-space:nowrap}
+  .chat-h .seg button{padding:4px 8px;white-space:nowrap}
+  .roster{padding:10px 14px}
+}
+.ttl{order:1}
+.sb{order:2}
+.wf-steps{order:3}
+.sb .short{display:none}
+/* workflow always gets its own row under the title + actions */
+.tabs{flex-wrap:wrap;row-gap:10px;padding:12px 20px 12px 28px}
+.wf-steps{flex-basis:100%;justify-content:space-between}
+.wf-line{flex:1 1 12px;max-width:none;margin:0 6px}
+@container main (max-width:1120px){
+  .wf-t small{display:none}
+  .wf-step{padding:6px 8px 6px 6px}
+  .tabs{padding:12px 20px}
+  .ttl{font-size:17px}
+}
+@container main (max-width:900px){
+  .wf-step:not(.on) .wf-t{display:none}
+  .wf-step{gap:8px}
+  .sb .clock{display:none}
+}
+@container main (max-width:720px){
+  .sb .long{display:none}
+  .sb .short{display:inline}
+  .ttl{font-size:15px}
+}
+@container main (max-width:520px){
+  .ttl span{display:block}
+}
 
 .canvas{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -312,7 +346,7 @@ tr.changed td{background:rgba(25,194,160,.06)}
     </div>
     <div class="nav">
       <div class="crumbs">Org Hub <span class="sep">›</span> Subject Rooms <span class="sep">›</span> FP&amp;A Core Room</div>
-      <div class="user" style="margin-left:auto"><div><b id="userName">Jan D.</b><span id="userRole">Mission Lead</span> · Orchestration Services Limited</div><div class="avatar">J</div></div>
+      <div class="user" style="margin-left:auto"><div><b id="userName">Jan D.</b><span id="userRole">Mission Lead</span><span class="org"> · Orchestration Services Limited</span></div><div class="avatar">J</div></div>
     </div>
   </header>
   <div class="body">
@@ -497,7 +531,7 @@ function badge(i){
 function renderTabs(){
   document.getElementById('tabs').innerHTML = `<h1 class="ttl">Subject Room: <span>FP&amp;A Core Room</span></h1><div class="wf-steps">`+
     STEPS.map((x,i)=>`${i?'<span class="wf-line"></span>':''}<button class="wf-step ${i===cur?'on':''} ${x.t?'t':''}" data-wf="${i}"><span class="wf-n">${i<maxReached&&i!==cur?'✓':i+1}</span><span class="wf-t">${x.n}<small>${badge(i)}</small></span></button>`).join('')+
-    `</div><div class="sb">${(cur===2||cur===3)&&!S.closed&&!AP.on?`<span class="clock">◷ 01:24:36</span><button class="btn pri" data-wf="5">Memorialize</button>`:''}<button class="btn play" data-play>${AP.on?(AP.paused?'▶ Resume':'⏸ Pause'):'▶ Play walkthrough'}</button><button class="btn ${S.drawer==='step'?'pri':''}" data-insp>ⓘ Step description</button></div>`;
+    `</div><div class="sb">${(cur===2||cur===3)&&!S.closed&&!AP.on?`<span class="clock">◷ 01:24:36</span><button class="btn pri" data-wf="5">Memorialize</button>`:''}<button class="btn play" data-play title="Play walkthrough">${AP.on?(AP.paused?'▶<span class="long"> Resume</span>':'⏸<span class="long"> Pause</span>'):'▶<span class="long"> Play walkthrough</span><span class="short"> Play</span>'}</button><button class="btn ${S.drawer==='step'?'pri':''}" data-insp title="Step description">ⓘ<span class="long"> Step description</span></button></div>`;
 }
 
 /* ================= chat column ================= */
