@@ -299,6 +299,31 @@ tr.changed td{background:rgba(25,194,160,.06)}
   .mact .btn{padding:16px;font-size:15px;border-radius:8px}
 }
 
+/* assert & confirm: agent proposals */
+.prop{border:1px dashed var(--orange) !important;background:rgba(232,137,12,.08) !important;box-shadow:0 0 0 3px rgba(232,137,12,.12)}
+.ch-sec.prop h4,.wg.prop .panel-h{border-bottom-color:rgba(232,137,12,.35)}
+.pbadge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:#ffd3a0;background:#3a2408;border:1px solid var(--orange);padding:2px 8px;border-radius:10px;white-space:nowrap;font-weight:500;text-transform:uppercase}
+.ch-sec h4 .pbadge{margin-left:auto}
+.pcard{max-width:96%;border:1px solid var(--orange);background:#22180a;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.45;box-shadow:0 0 0 3px rgba(232,137,12,.1)}
+.pcard .pc-h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:#ffd3a0}
+.pcard .pc-h .chip{margin-left:auto}
+.pcard .pc-t{font-size:13.5px}
+.pcard .pc-b{color:#ece2d0}
+.pcard .pc-hint{font-family:var(--mono);font-size:10px;color:#c9a46a}
+.pcard .pc-a{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.pcard .pc-a .btn{flex:1;min-width:76px}
+.pcard .pc-s{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.pcard.accepted{border-color:#1a6e5f;background:rgba(25,194,160,.06);box-shadow:none}
+.pcard.accepted .pc-h{color:var(--s-bound)}
+.pcard.rejected,.pcard.revised{border-color:var(--line2);background:var(--panel2);box-shadow:none;opacity:.78}
+.pcard.rejected .pc-h,.pcard.revised .pc-h{color:var(--muted)}
+.pcard.rejected .pc-b{text-decoration:line-through;text-decoration-color:#64748b}
+.btn.danger{border-color:#7a2a3a;color:#ff8aa0}
+.pcard .btn.hl{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,137,12,.45);transform:scale(1.05);transition:.2s}
+.pc-wait{font-size:12px;color:#ffd3a0;font-family:var(--mono);padding:4px 2px;letter-spacing:.04em}
+.wg.new,.cfg-r.new,.card.new,.gate.new{animation:pulse 1.6s ease-in-out 2}
+.esc-ok{font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid #1a6e5f;background:rgba(25,194,160,.08);color:#c8f5e8}
+
 /* step overlay (walkthrough only) */
 .stepov{position:fixed;z-index:22;display:grid;place-items:center;padding:24px;background:rgba(8,13,26,.84);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .35s;pointer-events:none}
 .stepov[hidden]{display:none}
@@ -476,11 +501,11 @@ tr.changed td{background:rgba(25,194,160,.06)}
       <div class="dl" style="color:var(--teal)">OSL CAST · SUBJECT ROOM WALKTHROUGH</div>
       <h2>Welcome to the Subject Room</h2>
       <p>A <b>Subject Room</b> is a shared workspace where people and AI agents work on one business question together. Here, the question is why EMEA margins fell short in Q3.</p>
-      <p>An AI <b>Room Manager</b> guides you in conversation. Click the <b style="color:#ffd3a0">✦ orange suggestions</b> to take the next step.</p>
+      <p>An AI <b>Room Manager</b> guides you in conversation. Click the <b style="color:#ffd3a0">✦ orange suggestions</b> to take the next step. When an agent proposes a change, it’s highlighted in orange, and you <b>accept</b>, <b>reject</b> or <b>modify</b> it.</p>
       <div class="mflow"><span class="fs"><i>1</i>Agree purpose</span><span class="ar"></span><span class="fs"><i>2</i>Configure room</span><span class="ar"></span><span class="fs"><i>3</i>Run session</span><span class="ar"></span><span class="fs"><i>4</i>Private sandbox</span><span class="ar"></span><span class="fs"><i>5</i>Monitor</span><span class="ar"></span><span class="fs"><i>6</i>Memorialize</span></div>
       <div class="mtip">No experience needed. Pause at any time, or move between steps with the ← → keys.</div>
     </div>
-    <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 3 min)</button></div>
+    <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 4 min)</button></div>
   </div>
 </div>
 
@@ -507,6 +532,8 @@ const fresh = () => ({
   cascade:false, ghost:false, promoted:false, approved:false,
   submitted:false, q3:false, closed:false,
   drawer:null, used:{}, newItem:null, vis:{sf:false, scraper:false},
+  purpose:null, inScope:null, sarahApprover:false, gateNotify:false, annot:false, escScope:null, modelSwap:null, q3One:false,
+  cards:{}, pend:{}, raised:{}, nCard:0,
 });
 let S = fresh();
 const extras={0:[],1:[],2:[],3:[],4:[],5:[]};
@@ -516,10 +543,11 @@ function resetDemo(){ S=fresh(); for(const k in extras) extras[k]=[]; cur=0; max
 const PURPOSE='Explain the EMEA Q3 margin shortfall and agree a recovery plan.';
 const IN_SCOPE=['Logistics & freight costs','Tier 1 supplier exposure','EMEA region','Q3 actuals vs target'];
 const OUT_SCOPE=['Pricing strategy','Headcount','Other regions'];
-function objectives(){
+const purposeText=()=>S.purpose||PURPOSE, inScope=()=>S.inScope||IN_SCOPE;
+function objectives(tight=S.tight){
   return [
     {n:'Explain the $200k EMEA Q3 margin gap by cost driver', o:'Forecasting', m:'Margin cascade published to the room', met:S.cascade},
-    {n:S.tight?'Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold':'Assess tier 1 supplier exposure if the strike continues', o:'Risk', m:'Exposure model shared with the room', met:S.promoted, changed:S.tight},
+    {n:tight?'Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold':'Assess tier 1 supplier exposure if the strike continues', o:'Risk', m:'Exposure model shared with the room', met:S.promoted, changed:tight},
     {n:'Agree a regional recovery action plan', o:'Jan D.', m:'Plan submitted for approval', met:S.submitted},
   ];
 }
@@ -544,8 +572,98 @@ function directory(){
   ];
   if (S.cascade) d[1].items.push({id:'cascade', title:'EMEA Q3 Margin Cascade', type:'Live Widget', status:'Public', owner:'Forecasting', visible:true, live:true});
   if (S.ghost) d[1].items.push({id:'ghost', title:'Supplier Exposure Model', type:S.promoted?'Live Widget':'Ghost Widget', status:S.promoted?'Public':'Private (p)', owner:'Risk', visible:true, ghost:!S.promoted, live:S.promoted});
-  if (S.sf) d[2].items.unshift({id:'sf', title:'Salesforce Q3 Opportunities', type:'Data View', status:'Synced', owner:'System', visible:S.vis.sf});
+  const sfp=pv('sf');
+  if (S.sf||sfp) d[2].items.unshift({id:'sf', title:'Salesforce Q3 Opportunities', type:'Data View', status:'Synced', owner:'System', visible:sfp?sfp.vis:S.vis.sf, prop:!!sfp});
   return d;
+}
+
+/* ================= assert & confirm: agent proposals ================= */
+/* each proposal: who proposes it, what it changes (v = versions; v[n].ask = the modification request that produces it) */
+const PROPS = {
+  purpose:{title:'Charter · purpose',
+    v:[{d:{text:'Explain the EMEA Q3 margin shortfall and agree a recovery plan.'}},
+       {ask:'Add a deadline, so we know when it’s done.', d:{text:'Explain the EMEA Q3 margin shortfall and agree a recovery plan before the Q4 forecast lock.'}}],
+    body:d=>`“${d.text}”`, apply:d=>{ S.purpose=d.text; S.ch=1; S.newItem='ch1'; },
+    ok:'Purpose agreed. Next, what’s in and out of scope?', no:'No problem, the purpose is still open. Ask me for another draft when you’re ready.'},
+  focus:{title:'Charter · focus',
+    v:[{d:{inn:IN_SCOPE}},{ask:'Also include the knock-on effect on the Q4 forecast.', d:{inn:IN_SCOPE.concat('Q4 forecast impact')}}],
+    body:d=>`<b>In scope:</b> ${d.inn.join(', ')}.<br><b>Out of scope:</b> ${OUT_SCOPE.join(', ')}.`, apply:d=>{ S.inScope=d.inn; S.ch=2; S.newItem='ch2'; },
+    ok:'Focus agreed. Now let’s set the objectives.'},
+  objectives:{title:'Charter · objectives',
+    v:[{d:{tight:false}},{ask:'Objective 2 is vague. Make it measurable.', d:{tight:true}}],
+    body:d=>`Three objectives, each with an owner and a measure of success.${d.tight?' Objective 2 is now: “Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold.”':''}`,
+    apply:d=>{ S.tight=d.tight; S.ch=3; S.newItem='ch3'; }, ok:'Objectives accepted. Agree the charter when you’re ready.'},
+  sarah:{title:'Add a person · Sarah K', view:'users',
+    v:[{d:{appr:false}},{ask:'Give Sarah approval rights as well.', d:{appr:true}}],
+    body:d=>`Invite <b>Sarah K</b> as Data Analyst, with prompt access${d.appr?' and approval rights':' but no approval rights'}.`,
+    apply:d=>{ S.sarah=true; S.sarahApprover=d.appr; S.newItem='sarah'; }, ok:'Sarah K is in the room.'},
+  sf:{title:'Bind a data source · Salesforce', view:'dashboard',
+    v:[{d:{vis:false}},{ask:'Make it visible to operators from the start.', d:{vis:true}}],
+    body:d=>`Connect <b>Salesforce Q3 Opportunities</b> under Inputs &amp; Data, ${d.vis?'<b>visible</b>':'<b>hidden</b>'} on the dashboard by default.`,
+    apply:d=>{ S.sf=true; S.vis.sf=d.vis; S.newItem='sf'; }, ok:'Connected. You can change its visibility in the Dashboard tab.'},
+  gate:{title:'Approval gate · Risk agent', view:'agents',
+    v:[{d:{notify:false}},{ask:'Notify me in Teams when an escalation is waiting.', d:{notify:true}}],
+    body:d=>`The Risk agent must get a Mission Lead’s approval before it warns any external supplier${d.notify?', with a Teams notification when one is waiting':''}.`,
+    apply:d=>{ S.gate=true; S.gateNotify=d.notify; S.newItem='gate'; }, ok:'Approval gate added to the Risk agent.'},
+  cascade:{by:'Forecasting', title:'Publish a widget · EMEA Q3 Margin Cascade',
+    v:[{d:{annot:false}},{ask:'Annotate the $200k gap on the chart.', d:{annot:true}}],
+    body:d=>`Publish the margin vs target cascade to the room. Actuals are $200k short of the $2M target, mainly because of expedited logistics.${d.annot?' The Q3 gap is annotated.':''}`,
+    apply:d=>{ S.cascade=true; S.annot=d.annot; S.newItem='cascade'; }, ok:'Published to the room.', okWho:['agent','Forecasting · Public']},
+  escalate:{by:'Risk', title:'External action · supplier warning',
+    v:[{d:{scope:'all'}},{ask:'Only warn the tier 1 suppliers for now.', d:{scope:'tier1'}}],
+    body:d=>`Send a strike-risk warning to ${d.scope==='all'?'<b>all 23 tier 1 and tier 2 suppliers</b>':'<b>the 9 tier 1 suppliers only</b>'}. This needs a Mission Lead’s approval.`,
+    apply:d=>{ S.approved=true; S.escScope=d.scope; }, ok:'Approved. I’m sending the supplier warning now.', okWho:['p','Risk · Private'],
+    no:'Understood. No warning will be sent.', noWho:['p','Risk · Private']},
+  model:{by:'Room Monitor', title:'Cost saving · switch model',
+    v:[{d:{routine:false}},{ask:'Only for routine refreshes.', d:{routine:true}}],
+    body:d=>`Switch the Forecasting agent from claude-3.5-sonnet to <b>claude-3-haiku</b>${d.routine?' for routine refreshes only':' for the rest of the session'}. Estimated saving: about 60% of its tokens.`,
+    apply:d=>{ S.modelSwap=d.routine?'routine':'all'; }, ok:'Switched.', no:'Understood. Forecasting stays on claude-3.5-sonnet: accuracy first.'},
+  q3:{by:'Forecasting', title:'Deliverable · Q3 Executive Summary',
+    v:[{d:{one:false}},{ask:'Add a one-page summary at the front.', d:{one:true}}],
+    body:d=>`Mark the Q3 Executive Summary <b>ready for review</b>. It covers the cascade and the exposure findings${d.one?', with a one-page summary at the front':''}.`,
+    apply:d=>{ S.q3=true; S.q3One=d.one; }, ok:'Q3 Executive Summary is ready for review.', okWho:['agent','Forecasting · Public']},
+};
+const propBy = id => PROPS[id].by || STEPS[cur].agent;
+const pbadge = id => `<span class="pbadge">✦ Proposed · ${propBy(id)}</span>`;
+function pendCard(){ const k=S.pend[cur], c=k&&S.cards[k]; return c&&c.status==='pending'?c:null; }
+function pv(id){ const c=pendCard(); return c&&c.id===id ? PROPS[id].v[c.v].d : null; }
+function meWho(){ return STEPS[cur].t?'ggilbert · Room Admin':STEPS[cur].ledger?'Jan D. · Public':'Jan D.'; }
+
+function raise(id, v=0, pill=null){
+  const key='c'+(++S.nCard);
+  S.cards[key]={id, v, status:'pending', step:cur, pill};
+  extras[cur].push(['card', key]); S.pend[cur]=key; S.newItem=null;
+  const P=PROPS[id];
+  if (P.view) S.cfgView=P.view;
+  if (id==='cascade'){ S.canvas='workspace'; S.cat='Charts & Analytics'; S.art='EMEA Q3 Margin Cascade'; }
+}
+function respond(act,key){
+  key=key||S.pend[cur]; const c=key&&S.cards[key]; if(!c||c.status!=='pending') return;
+  if (c.step!==cur) go(c.step);
+  const P=PROPS[c.id], d=P.v[c.v].d;
+  if (act==='accept'){
+    c.status='accepted'; delete S.pend[c.step]; P.apply(d);
+    const [w,who]=P.okWho||['ai',propBy(c.id)]; extras[cur].push([w,P.ok,who]);
+  } else if (act==='reject'){
+    c.status='rejected'; delete S.pend[c.step]; if (c.pill) S.used[c.pill]=false;
+    const [w,who]=P.noWho||['ai',propBy(c.id)]; extras[cur].push([w,P.no||'Understood. Nothing has changed.',who]);
+  } else if (act==='modify' && c.v+1<P.v.length){
+    c.status='revised'; delete S.pend[c.step];
+    const nv=P.v[c.v+1], priv=(P.okWho||[])[0]==='p';
+    extras[cur].push([priv?'p me':'me', nv.ask, priv?'Jan D. · (p)':meWho()]);
+    extras[cur].push([priv?'p':P.by==='Forecasting'?'agent':'ai', 'Revised. Here’s version '+(c.v+2)+'.', priv?'Risk · Private':P.by==='Forecasting'?'Forecasting · Public':propBy(c.id)]);
+    raise(c.id, c.v+1, c.pill);
+  }
+  render();
+  if (isM()){ if (act==='accept'){ flagPane('room'); if(!AP.on) setTimeout(()=>setPane('room'),900); } else flagPane('room'); }
+}
+function cardHTML(key){
+  const c=S.cards[key], P=PROPS[c.id], d=P.v[c.v].d, last=c.v+1>=P.v.length, pend=c.status==='pending';
+  const st={pending:chip('gap','Awaiting you'), accepted:chip('bound','Accepted'), rejected:chip('na','Rejected'), revised:chip('offered','Revised')}[c.status];
+  return `<div class="pcard ${c.status}"><div class="pc-h">✦ PROPOSAL · ${propBy(c.id).toUpperCase()}${c.v?' · V'+(c.v+1):''}${st}</div>
+    <b class="pc-t">${P.title}</b><div class="pc-b">${P.body(d)}</div>
+    ${pend?`<div class="pc-hint">▸ Highlighted in orange on the canvas</div><div class="pc-a"><button class="btn ok sm" data-pact="accept" data-key="${key}">✓ Accept</button>${last?'':`<button class="btn sm" data-pact="modify" data-key="${key}" title="${P.v[c.v+1].ask}">✎ Modify</button>`}<button class="btn danger sm" data-pact="reject" data-key="${key}">✕ Reject</button></div>`
+      :`<div class="pc-s">${c.status==='accepted'?'✓ Accepted by '+meWho().split(' · ')[0]:c.status==='rejected'?'✕ Rejected':'✎ Change requested'}</div>`}</div>`;
 }
 
 /* ================= walkthrough ================= */
@@ -553,56 +671,55 @@ const STEPS = [
  {n:'Agree purpose', who:'Mission Lead · Jan D.', title:'Agree the room’s purpose, focus and objectives', agent:'Room Manager',
   chat:[['ai','Before we set up the room, let’s agree why it exists. I’ll take you through three questions: the purpose, the focus, and the objectives we’ll measure the session against.','Room Manager']],
   pills:[
-    {l:'Draft the purpose', when:()=>S.ch===0, me:'We need to understand why EMEA Q3 margins came in below target, and decide what to do about it.', r:'Purpose drafted: “Explain the EMEA Q3 margin shortfall and agree a recovery plan.” Next, what’s in and out of scope?', a:'ch1'},
-    {l:'Set the focus', when:()=>S.ch===1, me:'Focus on logistics costs and supplier risk. Leave pricing strategy and headcount out.', r:'Focus set. In scope: logistics and freight costs, tier 1 supplier exposure, EMEA, Q3 actuals vs target. Out of scope: pricing strategy, headcount, other regions.', a:'ch2'},
-    {l:'Propose objectives', when:()=>S.ch===2, r:'I’ve proposed three objectives, each with an owner and a measure of success. They’re on the canvas. Do you want to change any before we agree?', a:'ch3'},
-    {l:'Tighten objective 2', when:()=>S.ch===3&&!S.tight, me:'Objective 2 is vague. Make it measurable.', r:'Changed objective 2 to “Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold.”', a:'tight'},
+    {l:'Draft the purpose', when:()=>S.ch===0, me:'We need to understand why EMEA Q3 margins came in below target, and decide what to do about it.', r:'Here’s a draft purpose for you to confirm.', prop:'purpose'},
+    {l:'Set the focus', when:()=>S.ch===1, me:'Focus on logistics costs and supplier risk. Leave pricing strategy and headcount out.', r:'Here’s the focus as I understand it.', prop:'focus'},
+    {l:'Propose objectives', when:()=>S.ch===2, r:'I’ve drafted three objectives, each with an owner and a measure of success.', prop:'objectives'},
     {l:'Agree the charter', when:()=>S.ch===3, r:'Charter v1.0 is agreed by Jan D. Every agent in the room will work to it, and the session will be checked against these objectives when it’s memorialized.', a:'ch4'},
     {l:'Set up the room', when:()=>S.ch===4, r:'', a:'next', keep:true, silent:true},
   ],
-  auto:['Draft the purpose','Set the focus','Propose objectives','Tighten objective 2','Agree the charter','Set up the room'],
-  notes:['Every room starts with an agreement on why it exists. The Room Manager agent leads it as a guided conversation.','It asks three things in order: the purpose, the focus (what’s in and out of scope), and measurable objectives, each with an owner.','You can accept its drafts or change them. Agreeing them creates version 1.0 of the room charter.','People and agents in the room work to the charter. At the end, the session is checked against its objectives.']},
+  auto:['Draft the purpose','@accept','Set the focus','@accept','Propose objectives','@modify','@accept','Agree the charter','Set up the room'],
+  notes:['Every room starts with an agreement on why it exists. The Room Manager agent leads it as a guided conversation: purpose, then focus, then measurable objectives.','Agents don’t change things on their own. They assert a proposal, and you confirm it.','Each proposal is highlighted in orange on the canvas and shown as a card in the conversation. You can accept it, reject it, or ask for a modification.','Agreeing the charter creates version 1.0. At the end, the session is checked against its objectives.']},
  {n:'Configure room', who:'Mission Lead · Jan D.', title:'Configure the room', agent:'Room Manager',
   chat:[['ai','Welcome to the FP&A example room setup. I can set up the people and agents in the room, bind data sources, and decide what appears on the dashboard.','Room Manager']],
   pills:[
-    {l:'Invite Sarah K as Data Analyst', r:'Sarah K is invited as Data Analyst, with prompt access and no approval rights.', a:'sarah'},
-    {l:'Add the Salesforce Q3 feed, hidden', r:'Connected Salesforce Q3 Opportunities under Inputs & Data. It’s hidden by default; switch it on in the Dashboard tab when operators need it.', a:'sf'},
-    {l:'Gate Risk escalations on approval', r:'Done. The Risk agent needs a Mission Lead’s approval before it warns any external supplier.', a:'gate'},
+    {l:'Invite Sarah K as Data Analyst', when:()=>!S.sarah, r:'I’ll add Sarah K. Please confirm the access.', prop:'sarah'},
+    {l:'Add the Salesforce Q3 feed, hidden', when:()=>!S.sf, r:'I can connect the Salesforce feed. Please confirm.', prop:'sf'},
+    {l:'Gate Risk escalations on approval', when:()=>!S.gate, r:'Here’s the approval rule I’d add to the Risk agent.', prop:'gate'},
     {l:'Open the room', r:'Room opened. The session is live.', a:'next', keep:true},
   ],
-  auto:['Invite Sarah K as Data Analyst','Add the Salesforce Q3 feed, hidden','Gate Risk escalations on approval','Open the room'],
-  notes:['With the charter agreed, the Room Manager sets up the room in conversation: who is in it, which agents, which data sources, and what the dashboard shows.','Use the canvas tabs to check each part. The visibility switches decide what operators see on the dashboard.','Open the room to start the session.']},
+  auto:['Invite Sarah K as Data Analyst','@accept','Add the Salesforce Q3 feed, hidden','@accept','Gate Risk escalations on approval','@modify','@accept','Open the room'],
+  notes:['With the charter agreed, the Room Manager sets up the room in conversation: who is in it, which agents, which data sources, and what the dashboard shows.','Each change is proposed first and highlighted in orange, so nothing is added to the room until you confirm it.','Use the canvas tabs to check each part. The visibility switches decide what operators see on the dashboard.','Open the room to start the session.']},
  {n:'Run session', who:'Mission Lead · Jan D.', title:'Run the session', agent:'Room Manager', ledger:true,
   chat:[['ai','Session opened. Jan D. and Sarah K are in the room with the Logistics, Forecasting and Risk agents.','Room Manager']],
   pills:[
-    {l:'@Forecasting build the EMEA margin cascade', me:'Team, Q3 margins are looking soft in EMEA. @Forecasting, build the margin vs target cascade for the region.', r:'Visualising the Q3 EMEA cascade on the canvas. Actuals fell $200k short of the $2M target, mainly because of expedited logistics costs.', from:['agent','Forecasting · Public'], a:'cascade'},
+    {l:'@Forecasting build the EMEA margin cascade', when:()=>!S.cascade, me:'Team, Q3 margins are looking soft in EMEA. @Forecasting, build the margin vs target cascade for the region.', r:'I’ve built the Q3 EMEA cascade. It’s a draft on the canvas until you confirm it.', from:['agent','Forecasting · Public'], prop:'cascade'},
     {l:'Explain the $200k shortfall', when:()=>S.cascade, r:'Expedited freight added $310k in Q3 after the port delays. Price increases recovered $110k, which leaves the $200k gap.', from:['agent','Forecasting · Public']},
     {l:'Switch to Live (A/V)', when:()=>S.ledger!=='live', r:'Live mode on. Cameras and transcription are active, and transcripts go into the ledger.', a:'live'},
     {l:'Ask @Risk privately (p)', r:'', a:'next', keep:true, silent:true},
   ],
-  auto:['@Forecasting build the EMEA margin cascade','Explain the $200k shortfall','Switch to Live (A/V)','Ask @Risk privately (p)'],
-  notes:['The ledger is the room’s shared record. Humans and agents post to it, in text or live with audio and video.','The canvas starts on the Dashboard Directory: every deliverable, widget, data feed and tool in the session.','Ask an agent with @name. Its output lands on the canvas, and the breadcrumb tracks where you are.','The agent ring in the roster shows status: computing, idle or blocked. Click an agent to inspect it.']},
+  auto:['@Forecasting build the EMEA margin cascade','@modify','@accept','Explain the $200k shortfall','Switch to Live (A/V)','Ask @Risk privately (p)'],
+  notes:['The ledger is the room’s shared record. Humans and agents post to it, in text or live with audio and video.','The canvas starts on the Dashboard Directory: every deliverable, widget, data feed and tool in the session.','Ask an agent with @name. Its output appears on the canvas as an orange proposal, and is published to the room only when you accept it.','The agent ring in the roster shows status: computing, idle or blocked. Click an agent to inspect it.']},
  {n:'Private sandbox', who:'Mission Lead · Jan D.', title:'Work privately, then share', agent:'Room Manager', ledger:true,
   chat:[['p me','@Risk calculate our tier 1 supplier exposure if the logistics strike continues.','Jan D. · (p)'],
         ['p','I generated a ghost widget modelling the exposure. Tier 1 risk hits the 85% critical threshold by week 3 of a strike.','Risk · Private']],
   pills:[
     {l:'Explain the 85% threshold', r:'At 85%, most tier 1 suppliers would miss their delivery windows. Above that, the margin cascade needs a new scenario.', from:['p','Risk · Private']},
-    {l:'Approve supplier escalation', when:()=>!S.approved, r:'Approved by Jan D. The Risk agent is sending the external supplier warning.', a:'approve'},
     {l:'Promote to public', when:()=>!S.promoted, r:'Supplier Exposure Model is now shared with the room. Everyone on the ledger can see it.', a:'promote'},
     {l:'Review the session', r:'', a:'next', keep:true, silent:true},
   ],
-  auto:['Explain the 85% threshold','Approve supplier escalation','Promote to public','Review the session'],
-  notes:['(p) messages and ghost widgets are private sandboxes. Only you and the agent can see them.','The Risk agent is blocked: it needs a human approval before contacting external suppliers.','Promote to Public moves a ghost widget into the shared context. Sandboxes that are never promoted are not memorialized.']},
+  raise:'escalate',
+  auto:['@modify','@accept','Explain the 85% threshold','Promote to public','Review the session'],
+  notes:['(p) messages and ghost widgets are private sandboxes. Only you and the agent can see them.','The Risk agent proposes an external action: warning suppliers. It stays blocked until a Mission Lead accepts, rejects or narrows it.','Promote to Public moves a ghost widget into the shared context. Sandboxes that are never promoted are not memorialized.']},
  {n:'Monitor', who:'Room Admin', title:'Monitor the session', agent:'Room Monitor', t:true,
   chat:[['ai','Session running for 1h 24m: 22 prompts and 65,750 tokens so far. One deliverable is ready for review.','Room Monitor']],
   pills:[
     {l:'Submit Regional Action Plan', when:()=>!S.submitted, r:'Submitted. It’s in Jan D.’s approval queue.', a:'submit'},
-    {l:'Which agent is costing most?', r:'Forecasting: 45,200 tokens, 69% of the session. Most of it came from rebuilding the cascade after the logistics update.', from:['ai','Room Monitor']},
-    {l:'Finish the Q3 summary', when:()=>!S.q3, r:'Q3 Executive Summary is drafted, with the cascade and exposure findings. Ready for review.', from:['agent','Forecasting · Public'], a:'q3'},
+    {l:'Which agent is costing most?', when:()=>!S.modelSwap, r:'Forecasting: 45,200 tokens, 69% of the session. I could reduce that.', from:['ai','Room Monitor'], prop:'model'},
+    {l:'Finish the Q3 summary', when:()=>!S.q3, r:'The Q3 Executive Summary is drafted. Please confirm it’s ready for review.', from:['agent','Forecasting · Public'], prop:'q3'},
     {l:'Prepare to memorialize', r:'', a:'next', keep:true, silent:true},
   ],
-  auto:['Submit Regional Action Plan','Which agent is costing most?','Finish the Q3 summary','Prepare to memorialize'],
-  notes:['Monitoring tracks progress against the charter’s objectives.','It also shows who contributed what, where each deliverable stands, and what each agent cost.','Every agent action is traced, so the session can be audited afterwards.','Submit sends a deliverable to its approver.']},
+  auto:['Submit Regional Action Plan','Which agent is costing most?','@reject','Finish the Q3 summary','@accept','Prepare to memorialize'],
+  notes:['Monitoring tracks progress against the charter’s objectives, who contributed what, and what each agent cost.','Agents keep proposing here too. Rejecting a proposal leaves everything as it was.','Every agent action and every decision on a proposal is traced, so the session can be audited afterwards.']},
  {n:'Memorialize', who:'Mission Lead · Jan D.', title:'Memorialize and close', agent:'Room Manager',
   chat:[['ai','Here’s what will be committed to corporate memory. Private sandboxes that weren’t promoted are discarded.','Room Manager']],
   pills:[
@@ -656,9 +773,11 @@ function renderChat(){
   document.getElementById('chatPh').textContent = st.ledger ? (S.ledger==='live'?'Microphone active. Type to instruct…':'Message the room…') : `Instruct the ${st.agent}…`;
   let msgs = st.chat.concat(extras[cur]);
   if (st.ledger && S.ledger==='live' && cur===2) msgs = msgs.concat([['tr','“Okay, I see the margin cascade… @Risk, what’s our tier 1 supplier exposure if this port strike runs another week?”','🎙 Jan D. · Live transcript']]);
-  document.getElementById('msgs').innerHTML = msgs.map(([w,t,who])=>`<div class="msg ${w}" data-who="${who||''}">${t}</div>`).join('');
+  document.getElementById('msgs').innerHTML = msgs.map(([w,t,who])=>w==='card'?cardHTML(t):`<div class="msg ${w}" data-who="${who||''}">${t}</div>`).join('');
   const pills = st.pills.filter(p=>(!p.when||p.when()) && (p.keep||!S.used[p.l]));
-  document.getElementById('sugs').innerHTML = pills.map(p=>`<button class="sug" data-pill="${p.l}">✦ ${p.l}</button>`).join('');
+  document.getElementById('sugs').innerHTML = pendCard()
+    ? `<div class="pc-wait">▲ Accept, modify or reject the proposal to continue</div>`
+    : pills.map(p=>`<button class="sug" data-pill="${p.l}">✦ ${p.l}</button>`).join('');
   const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight;
 }
 
@@ -666,17 +785,19 @@ function renderChat(){
 function charterView(){
   const c=S.ch, nw=k=>S.newItem===k?'new':'';
   const stages=['Purpose','Focus','Objectives','Agreed'];
-  const sec=(n,t,done,body,k)=>`<div class="ch-sec ${nw(k)}"><h4><span class="num">${n}</span>${t}${done?chip(c===4?'bound':'offered',c===4?'Agreed':'Drafted'):chip('na','Waiting')}</h4><div class="ch-b">${body}</div></div>`;
-  const objs=objectives();
+  const sec=(n,t,done,body,k,pid)=>`<div class="ch-sec ${nw(k)} ${pid?'prop':''}"><h4><span class="num">${n}</span>${t}${pid?pbadge(pid):done?chip(c===4?'bound':'offered',c===4?'Agreed':'Accepted'):chip('na','Waiting')}</h4><div class="ch-b">${body}</div></div>`;
+  const pP=pv('purpose'), pF=pv('focus'), pO=pv('objectives');
+  const objs=objectives(pO?pO.tight:S.tight);
+  const scopeHTML=inn=>`<div class="scope"><div><div class="dl">In scope</div><div class="tags">${inn.map(x=>`<span class="tag in">${x}</span>`).join('')}</div></div><div><div class="dl">Out of scope</div><div class="tags">${OUT_SCOPE.map(x=>`<span class="tag out">${x}</span>`).join('')}</div></div></div>`;
   return `<div class="panel">
     <div class="fhead"><div><div class="crumb2">Room charter</div><h2>Purpose, focus &amp; objectives</h2><p>Agreed before the room is set up. Everyone in the room, people and agents, works to it, and the session is checked against it at the end.</p></div>
       ${c===4?chip('bound','v1.0 Agreed'):chip('gap',`v0.${c} Draft`)}</div>
     <div style="padding:0 20px 4px" class="vline">${stages.map((s,i)=>`${i?'<span class="vbar"></span>':''}<span class="vstep ${c>i?'done':''} ${c===i?'cur':''}"><i></i>${s}</span>`).join('')}</div>
     <div class="fbody">
-      ${sec(1,'Purpose · why this room exists',c>=1,c>=1?`<div class="purpose">${PURPOSE}</div>`:'<div class="wait">The Room Manager will ask why this room exists.</div>','ch1')}
-      ${sec(2,'Focus · what’s in and out of scope',c>=2,c>=2?`<div class="scope"><div><div class="dl">In scope</div><div class="tags">${IN_SCOPE.map(x=>`<span class="tag in">${x}</span>`).join('')}</div></div><div><div class="dl">Out of scope</div><div class="tags">${OUT_SCOPE.map(x=>`<span class="tag out">${x}</span>`).join('')}</div></div></div>`:'<div class="wait">Next, the Room Manager will ask what to include and leave out.</div>','ch2')}
-      ${sec(3,'Objectives · how we’ll know it worked',c>=3,c>=3?`<table><thead><tr><th style="width:36px"></th><th>Objective</th><th class="hm">Owner</th><th>Measure of success</th></tr></thead><tbody>
-        ${objs.map((o,i)=>`<tr class="${o.changed&&S.newItem==='tight'?'changed':''}"><td><span class="obj-n">${i+1}</span></td><td class="nm">${o.n}${o.changed?' <span class="badge-new">EDITED</span>':''}</td><td class="hm">${o.o}</td><td style="color:#b8c6db">${o.m}</td></tr>`).join('')}</tbody></table>`:'<div class="wait">Then it will propose measurable objectives, each with an owner.</div>','ch3')}
+      ${sec(1,'Purpose · why this room exists',c>=1,pP?`<div class="purpose">${pP.text}</div>`:c>=1?`<div class="purpose">${purposeText()}</div>`:'<div class="wait">The Room Manager will ask why this room exists.</div>','ch1',pP&&'purpose')}
+      ${sec(2,'Focus · what’s in and out of scope',c>=2,pF?scopeHTML(pF.inn):c>=2?scopeHTML(inScope()):'<div class="wait">Next, the Room Manager will ask what to include and leave out.</div>','ch2',pF&&'focus')}
+      ${sec(3,'Objectives · how we’ll know it worked',c>=3,(c>=3||pO)?`<table><thead><tr><th style="width:36px"></th><th>Objective</th><th class="hm">Owner</th><th>Measure of success</th></tr></thead><tbody>
+        ${objs.map((o,i)=>`<tr class="${o.changed&&S.newItem==='tight'?'changed':''}"><td><span class="obj-n">${i+1}</span></td><td class="nm">${o.n}${o.changed?' <span class="badge-new">EDITED</span>':''}</td><td class="hm">${o.o}</td><td style="color:#b8c6db">${o.m}</td></tr>`).join('')}</tbody></table>`:'<div class="wait">Then it will propose measurable objectives, each with an owner.</div>','ch3',pO&&'objectives')}
       <div class="ch-sec ${nw('ch4')}"><h4><span class="num">✓</span>Agreement</h4><div class="ch-b" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
         <span class="who"><span class="hum" style="border-color:#8b8cf6;color:#8b8cf6">JD</span>Jan D. · Mission Lead</span>${c===4?chip('bound','Agreed'):chip('na','Pending')}
         <span class="who" style="margin-left:12px"><span class="ag" style="color:var(--teal);border-color:var(--teal)">✦</span>Room Manager</span>${c>=1?chip('offered','Drafted'):chip('na','Waiting')}
@@ -691,24 +812,27 @@ function objectivesPanel(title){
 }
 function configView(){
   const tab=(k,l,n)=>`<button class="${S.cfgView===k?'on':''}" data-cfg="${k}">${l} <span class="ct">${n}</span></button>`;
-  const people=HUMANS.filter(p=>p.id==='jan'||S.sarah);
+  const pS=pv('sarah'), pG=pv('gate');
+  const people=HUMANS.filter(p=>p.id==='jan'||S.sarah||pS);
   let body='';
   if (S.cfgView==='users'){
-    body=`<div class="grid2">${people.map(p=>`<div class="card ${p.id==='sarah'&&S.newItem==='sarah'?'new':''}" style="border-top-color:${p.c}">
-      <div class="hd"><span class="hum" style="border-color:${p.c};color:${p.c};width:38px;height:38px">${initials(p.n)}</span><div><div class="nm">${p.n}</div><div class="rl">ROLE: ${p.r.toUpperCase()}</div></div></div>
-      <div class="ft"><span class="dl">Approver</span>${p.approver?chip('bound','Active'):chip('na','None')}<span class="dl" style="margin-left:auto">Prompt access</span>${chip('bound','Yes')}</div></div>`).join('')}
-      ${S.sarah?'':`<button class="dash" data-pill="Invite Sarah K as Data Analyst" style="min-height:120px">+ INVITE USER</button>`}</div>`;
+    body=`<div class="grid2">${people.map(p=>{const prop=p.id==='sarah'&&pS, appr=p.id==='sarah'?(pS?pS.appr:S.sarahApprover):p.approver;
+      return `<div class="card ${p.id==='sarah'&&S.newItem==='sarah'?'new':''} ${prop?'prop':''}" style="border-top-color:${p.c}">
+      <div class="hd"><span class="hum" style="border-color:${p.c};color:${p.c};width:38px;height:38px">${initials(p.n)}</span><div><div class="nm">${p.n}</div><div class="rl">ROLE: ${p.r.toUpperCase()}</div></div>${prop?`<span style="margin-left:auto">${pbadge('sarah')}</span>`:''}</div>
+      <div class="ft"><span class="dl">Approver</span>${appr?chip('bound','Active'):chip('na','None')}<span class="dl" style="margin-left:auto">Prompt access</span>${chip('bound','Yes')}</div></div>`}).join('')}
+      ${S.sarah||pS?'':`<button class="dash" data-pill="Invite Sarah K as Data Analyst" style="min-height:120px">+ INVITE USER</button>`}</div>`;
   } else if (S.cfgView==='agents'){
+    const gateTxt=n=>`🔒 Approval gate: escalations to external suppliers need a Mission Lead’s approval${n?', with a Teams notification when one is waiting':''}.`;
     body=`<div class="grid2">${AGENTS.map(a=>`<div class="card ${a.id==='risk'&&S.newItem==='gate'?'new':''}">
-      <div class="hd"><span class="ag ${agentState(a)}" style="width:38px;height:38px">${a.n[0]}</span><div><div class="nm">${a.n} Agent</div><div class="rl">MODEL: ${a.model}</div></div></div>
+      <div class="hd"><span class="ag ${agentState(a)}" style="width:38px;height:38px">${a.n[0]}</span><div><div class="nm">${a.n} Agent</div><div class="rl">MODEL: ${modelOf(a)}</div></div></div>
       <div class="ds">${a.desc}</div>
-      ${a.id==='risk'&&S.gate?'<div class="gate">🔒 Approval gate: escalations to external suppliers need a Mission Lead’s approval.</div>':''}
+      ${a.id==='risk'&&pG?`<div class="gate prop">${pbadge('gate')}<div style="margin-top:6px">${gateTxt(pG.notify)}</div></div>`:a.id==='risk'&&S.gate?`<div class="gate">${gateTxt(S.gateNotify)}</div>`:''}
       <div class="ft"><span class="dl">Bound skills</span>${a.skills.map(s=>`<span class="skill">${s}</span>`).join('')}</div></div>`).join('')}
       <button class="dash" style="min-height:120px">+ INVITE AGENT</button></div>`;
   } else {
     body=directory().map(g=>`<div class="cfg-g"><h4>${g.t}<button class="btn sm">+ Add item</button></h4>
-      ${g.items.length?g.items.map(it=>`<div class="cfg-r ${S.newItem===it.id?'new':''}"><div><b>${it.title}${it.ghost?' <span class="badge-ghost">GHOST</span>':''}${S.newItem===it.id?' <span class="badge-new">NEW</span>':''}</b><small>${it.type} · owner: ${it.owner}</small></div>
-        ${(it.id in S.vis)?`<button class="tg ${it.visible?'on':''}" data-vis="${it.id}"><i></i>${it.visible?'Visible':'Hidden'}</button>`:`<span class="tg on"><i></i>Visible</span>`}</div>`).join(''):`<div class="cfg-r"><small>Created during the session by agents.</small></div>`}</div>`).join('');
+      ${g.items.length?g.items.map(it=>`<div class="cfg-r ${S.newItem===it.id?'new':''} ${it.prop?'prop':''}"><div><b>${it.title}${it.ghost?' <span class="badge-ghost">GHOST</span>':''}${S.newItem===it.id?' <span class="badge-new">NEW</span>':''}</b><small>${it.type} · owner: ${it.owner}</small></div>
+        ${it.prop?`<span style="display:flex;gap:10px;align-items:center"><span class="tg ${it.visible?'on':''}"><i></i>${it.visible?'Visible':'Hidden'}</span>${pbadge('sf')}</span>`:(it.id in S.vis)?`<button class="tg ${it.visible?'on':''}" data-vis="${it.id}"><i></i>${it.visible?'Visible':'Hidden'}</button>`:`<span class="tg on"><i></i>Visible</span>`}</div>`).join(''):`<div class="cfg-r"><small>Created during the session by agents.</small></div>`}</div>`).join('');
   }
   return `<div class="panel">
     <div class="fhead"><div><div class="crumb2">Room setup</div><h2>Room configuration</h2><p>Set up who is in the room, which agents work in it, and what operators see on the dashboard.</p></div>
@@ -717,17 +841,25 @@ function configView(){
     <div class="fbody">${body}</div></div>`;
 }
 
-function lineChart(){
+function lineChart(annot){
   const d=[['Q1',4000,4400],['Q2',3000,3200],['Q3',2000,1800],['Q4',2780,2900]];
   const W=640,H=220,pl=44,pr=16,pt=12,pb=28,max=5000;
   const x=i=>pl+i*(W-pl-pr)/(d.length-1), y=v=>pt+(H-pt-pb)*(1-v/max);
   const path=k=>d.map((r,i)=>`${i?'L':'M'}${x(i)},${y(r[k])}`).join('');
   const grid=[0,1000,2000,3000,4000,5000].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#253350" stroke-dasharray="3 3"/><text x="${pl-8}" y="${y(v)+4}" fill="#64748b" font-size="10" text-anchor="end">${v/1000}k</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-height:300px;margin:0 auto">${grid}
     ${d.map((r,i)=>`<text x="${x(i)}" y="${H-8}" fill="#64748b" font-size="10.5" text-anchor="middle">${r[0]}</text>`).join('')}
     <path d="${path(1)}" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="5 5"/>
     <path d="${path(2)}" fill="none" stroke="#22c7dc" stroke-width="3"/>
+    ${annot?`<line x1="${x(2)+14}" x2="${x(2)+14}" y1="${y(2000)}" y2="${y(1800)}" stroke="#e8890c" stroke-width="2"/><line x1="${x(2)+9}" x2="${x(2)+19}" y1="${y(2000)}" y2="${y(2000)}" stroke="#e8890c" stroke-width="2"/><line x1="${x(2)+9}" x2="${x(2)+19}" y1="${y(1800)}" y2="${y(1800)}" stroke="#e8890c" stroke-width="2"/><text x="${x(2)}" y="${y(1800)+24}" fill="#ffd3a0" font-size="12" text-anchor="middle">−$200k gap</text>`:''}
     ${d.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r[2])}" r="4.5" fill="#0c1426" stroke="${r[2]<r[1]?'#f2506b':'#22c7dc'}" stroke-width="2"><title>${r[0]}: actual ${r[2]} · target ${r[1]}</title></circle>`).join('')}</svg>`;
+}
+const modelOf = a => a.id==='forecasting'&&S.modelSwap ? (S.modelSwap==='routine'?'claude-3.5-sonnet · haiku for routine':'claude-3-haiku') : a.model;
+function escalationCard(){
+  const d=pv('escalate');
+  if (d) return `<div class="panel prop"><div class="panel-h"><h3>Proposed external action</h3>${pbadge('escalate')}</div><div class="fbody" style="font-size:13.5px;line-height:1.5">${PROPS.escalate.body(d)}<div class="mono" style="color:#c9a46a">Waiting for a Mission Lead’s decision in the conversation</div></div></div>`;
+  if (S.approved) return `<div class="esc-ok">✓ Supplier warning sent to ${S.escScope==='tier1'?'the 9 tier 1 suppliers':'all 23 tier 1 and tier 2 suppliers'} · approved by Jan D.</div>`;
+  return '';
 }
 function barChart(){
   const d=[['Tier 1',85],['Tier 2',45],['Tier 3',20]];
@@ -737,8 +869,9 @@ function barChart(){
     <div class="mono" style="color:var(--muted)">Critical threshold 85% · week 3 of strike</div></div>`;
 }
 function cascadeWidget(){
-  return `<div class="wg"><div class="panel-h"><h3><span class="dot"></span>EMEA Q3 Margin Cascade</h3><div style="display:flex;gap:8px;align-items:center"><div class="legend"><span><i style="background:#64748b"></i>Target</span><span><i style="background:#22c7dc"></i>Actual</span></div>${chip('live','Live · Public')}</div></div>
-    <div class="wg-b">${lineChart()}</div></div>`;
+  const p=pv('cascade');
+  return `<div class="wg ${p?'prop':''} ${S.newItem==='cascade'?'new':''}"><div class="panel-h"><h3><span class="dot"></span>EMEA Q3 Margin Cascade</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="legend"><span><i style="background:#64748b"></i>Target</span><span><i style="background:#22c7dc"></i>Actual</span></div>${p?pbadge('cascade'):chip('live','Live · Public')}</div></div>
+    <div class="wg-b">${lineChart(p?p.annot:S.annot)}</div></div>`;
 }
 function ghostWidget(){
   const p=S.promoted;
@@ -760,19 +893,20 @@ function execView(){
           <div class="meta"><span>${it.type}</span><span>owner: ${it.owner}${it.live||it.ghost?' · open ↗':''}</span></div></button>`).join(''):`<div class="empty">${g.t==='Charts & Analytics'?'Agents publish charts here during the session.':'No visible items configured for this section.'}</div>`}
         </div></div>`}).join('')}</div></div></div>`;
   } else {
-    const showC=S.cascade&&(!S.art||S.art==='EMEA Q3 Margin Cascade'), showG=S.ghost&&(!S.art||S.art==='Supplier Exposure Model');
-    body = (showC?cascadeWidget():'')+(showG?ghostWidget():'')+
+    const showC=(S.cascade||pv('cascade'))&&(!S.art||S.art==='EMEA Q3 Margin Cascade'), showG=S.ghost&&(!S.art||S.art==='Supplier Exposure Model');
+    body = (showC?cascadeWidget():'')+(showG?escalationCard()+ghostWidget():'')+
       (!showC&&!showG?`<div class="panel" style="padding:48px 20px;text-align:center;color:var(--muted)"><div style="font-size:30px;margin-bottom:10px">▤</div><h3 style="color:var(--text);margin-bottom:6px">${S.art}</h3>Preview rendering available for this artifact type.</div>`:'');
   }
-  return `<div class="purp-strip"><b>CHARTER v1.0 · PURPOSE</b>${PURPOSE}<button class="lnk" style="margin-left:auto;color:var(--teal);font-size:12px" data-wf="0">View charter</button></div><div class="toolbar">${crumbs}${pipe}</div>${body}`;
+  return `<div class="purp-strip"><b>CHARTER v1.0 · PURPOSE</b>${purposeText()}<button class="lnk" style="margin-left:auto;color:var(--teal);font-size:12px" data-wf="0">View charter</button></div><div class="toolbar">${crumbs}${pipe}</div>${body}`;
 }
 
 function monitorView(){
   const people=HUMANS.filter(p=>p.id==='jan'||S.sarah);
   const stats={jan:[14,S.approved?4:3],sarah:[8,0]};
   const total=AGENTS.reduce((n,a)=>n+a.tx,0);
+  const pQ=pv('q3'), pM=pv('model');
   const del=[
-    {n:'Q3 Executive Summary', s:S.q3?['bound','Ready for review']:['gap','Drafting · Forecasting'], btn:S.q3},
+    {n:'Q3 Executive Summary', s:pQ?['offered','Ready for review'+(pQ.one?' · with one-pager':'')]:S.q3?['bound','Ready for review'+(S.q3One?' · with one-pager':'')]:['gap','Drafting · Forecasting'], btn:S.q3, prop:pQ&&'q3'},
     {n:'Regional Action Plan', s:S.submitted?['offered','Submitted · awaiting Jan D.']:['bound','Ready for review'], btn:!S.submitted, pill:'Submit Regional Action Plan'},
   ];
   return `<div class="kpis">
@@ -785,7 +919,7 @@ function monitorView(){
       <div class="panel"><div class="panel-h"><h3>Human roster &amp; contributions</h3></div><table><thead><tr><th>Person</th><th style="text-align:right">Prompts</th><th style="text-align:right">Approvals</th></tr></thead><tbody>
         ${people.map(p=>`<tr><td><div class="who"><span class="hum" style="border-color:${p.c};color:${p.c}">${initials(p.n)}</span><div><b>${p.n}</b><div class="mono" style="color:var(--muted);font-size:10px">${p.r.toUpperCase()}</div></div></div></td><td class="num">${stats[p.id][0]}</td><td class="num" style="color:${stats[p.id][1]?'var(--s-bound)':'var(--dim)'}">${stats[p.id][1]}</td></tr>`).join('')}</tbody></table></div>
       <div class="panel"><div class="panel-h"><h3>Deliverables status</h3></div><table><tbody>
-        ${del.map(d=>`<tr><td class="nm">${d.n}<div style="margin-top:4px">${chip(d.s[0],d.s[1])}</div></td><td style="text-align:right">${d.btn&&d.pill?`<button class="btn pri sm" data-pill="${d.pill}">➤ Submit</button>`:d.btn?'<button class="btn sm">➤ Submit</button>':''}</td></tr>`).join('')}</tbody></table></div>
+        ${del.map(d=>`<tr class="${d.prop?'prop':''}"><td class="nm">${d.n}<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${chip(d.s[0],d.s[1])}${d.prop?pbadge(d.prop):''}</div></td><td style="text-align:right">${d.btn&&d.pill?`<button class="btn pri sm" data-pill="${d.pill}">➤ Submit</button>`:d.btn?'<button class="btn sm">➤ Submit</button>':''}</td></tr>`).join('')}</tbody></table></div>
     </div>
     <div class="two" style="grid-template-columns:1.4fr 1fr">
       <div class="panel"><div class="panel-h"><h3>System object activity</h3></div><div class="act">
@@ -793,7 +927,9 @@ function monitorView(){
         <div><b style="color:var(--teal)">12</b><span>Views rendered</span><small>Charts &amp; Analytics</small></div>
         <div><b style="color:var(--s-offered)">14</b><span>Times invoked</span><small>Tools &amp; Functions</small></div></div></div>
       <div class="panel"><div class="panel-h"><h3>Tech layer / models</h3></div><table><tbody>
-        ${AGENTS.map(a=>`<tr><td class="nm"><span style="display:inline-flex;gap:8px;align-items:center"><span class="ag ${agentState(a)}" style="width:20px;height:20px;font-size:9px;border-width:1.5px">${a.n[0]}</span>${a.n} Agent</span><small>model: ${a.model}</small></td><td class="num">${a.tx.toLocaleString()} tx</td></tr>`).join('')}</tbody></table>
+        ${AGENTS.map(a=>{const pr=a.id==='forecasting'&&pM;
+          return `<tr class="${pr?'prop':''}"><td class="nm"><span style="display:inline-flex;gap:8px;align-items:center"><span class="ag ${agentState(a)}" style="width:20px;height:20px;font-size:9px;border-width:1.5px">${a.n[0]}</span>${a.n} Agent</span>
+          ${pr?`<small>model: <s>${a.model}</s> → <b style="color:#ffd3a0">claude-3-haiku</b>${pM.routine?' (routine refreshes)':''}</small><div style="margin-top:4px">${pbadge('model')}</div>`:`<small>model: ${modelOf(a)}</small>`}</td><td class="num">${a.tx.toLocaleString()} tx</td></tr>`}).join('')}</tbody></table>
         <div class="total"><span>TOTAL SESSION TOKENS</span><b>${total.toLocaleString()}</b></div></div>
     </div>`;
 }
@@ -834,7 +970,7 @@ function renderDrawer(){
       <div class="dr-body"><div style="display:flex;gap:12px;align-items:center"><span class="ag ${s}" style="width:42px;height:42px;font-size:15px">${s==='blocked'?'🔒':a.n[0]}</span><div><b style="font-size:16px">${a.n} Agent</b><div class="mono" style="color:var(--muted);margin-top:2px">status: ${s} · ${a.model}</div></div></div>
       <div class="note">${a.desc}</div><div class="dl">Available skills</div>${a.skills.map(k=>`<div class="sk"><span class="mono">${k}</span><span style="color:var(--dim)">›</span></div>`).join('')}
       ${s==='blocked'?`<div class="gate"><b style="display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;margin-bottom:4px">🔒 APPROVAL REQUIRED</b>The agent needs a human approval to escalate an external supplier warning.</div>`:''}</div>
-      ${s==='blocked'?`<div class="dr-foot"><button class="btn ok" data-pill="Approve supplier escalation">Approve escalation</button></div>`:''}`;
+      ${s==='blocked'&&pv('escalate')?`<div class="dr-foot"><button class="btn ok" data-pact="accept">✓ Accept the escalation proposal</button></div>`:''}`;
   }
 }
 
@@ -854,6 +990,8 @@ function go(i){
   if (cur===2){ S.canvas=S.cascade?'workspace':'directory'; S.cat=S.cascade?'Charts & Analytics':null; S.art=null; }
   if (cur===3){ S.canvas='workspace'; S.cat='Charts & Analytics'; S.art='Supplier Exposure Model'; }
   if (S.drawer && S.drawer!=='step') S.drawer=null;
+  const rz=STEPS[cur].raise;
+  if (rz && !S.raised[rz] && !S.approved){ S.raised[rz]=true; raise(rz); }
   try{history.replaceState(null,'','#step-'+(cur+1));}catch(e){}
   render();
 }
@@ -870,6 +1008,11 @@ function runPill(label){
     extras[cur].push([priv?'p me':'me', p.me||p.l, me]);
     const [w,who] = p.from || ['ai', STEPS[cur].agent];
     extras[cur].push([w, typeof p.r==='function'?p.r():p.r, who]);
+  }
+  if (p.prop){
+    raise(p.prop, 0, p.l); render();
+    if (isM()){ flagPane('room'); }
+    return;
   }
   S.newItem=null;
   switch(p.a){
@@ -946,6 +1089,19 @@ async function autoplay(){
       hideOv(); await hold(500,tok); AP.done++;
       for(const l of STEPS[i].auto){
         if (isM()){ setPane('chat'); await hold(400,tok); }
+        const act={'@accept':'accept','@modify':'modify','@reject':'reject'}[l];
+        if (act){
+          const btn=document.querySelector(`#msgs .pcard.pending [data-pact="${act}"]`);
+          if (!btn){ AP.done++; continue; }
+          const c=S.cards[S.pend[cur]], P=PROPS[c.id];
+          caption(`STEP ${i+1} OF ${STEPS.length}`, act==='accept'?`Accepting the proposal: <b style="color:#ffd3a0">${P.title}</b>`:act==='reject'?`Rejecting the proposal: <b style="color:#ffd3a0">${P.title}</b>`:`Asking for a change: <b style="color:#ffd3a0">“${P.v[c.v+1].ask}”</b>`);
+          btn.classList.add('hl'); btn.scrollIntoView({block:'nearest'});
+          await hold(act==='modify'?2200:1600,tok);
+          respond(act); AP.done++; renderCap();
+          if (isM()){ await hold(1400,tok); setPane('room'); await hold(2600,tok); }
+          else await hold(3200,tok);
+          continue;
+        }
         const b=[...document.querySelectorAll('#sugs .sug')].find(x=>x.dataset.pill===l);
         if (!b){ AP.done++; continue; }
         caption(`STEP ${i+1} OF ${STEPS.length}`, `${isM()?'Tapping':'Clicking'} the suggestion <b style="color:#ffd3a0">✦ ${l}</b>`);
@@ -979,6 +1135,7 @@ document.addEventListener('click',e=>{
   if (t.hasAttribute('data-insp')){ S.drawer=S.drawer==='step'?null:'step'; return render(); }
   if (t.hasAttribute('data-close')){ S.drawer=null; return render(); }
   if (ds.pill) return runPill(ds.pill);
+  if (ds.pact) return respond(ds.pact, ds.key);
   if (ds.cfg){ S.cfgView=ds.cfg; S.newItem=null; return render(); }
   if (ds.vis){ S.vis[ds.vis]=!S.vis[ds.vis]; return render(); }
   if (ds.ledger){ S.ledger=ds.ledger; return render(); }
