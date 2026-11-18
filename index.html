@@ -88,43 +88,6 @@ button{font-family:inherit;cursor:pointer;color:inherit;background:none;border:0
 .wf-t small{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);letter-spacing:0}
 .wf-step.on .wf-t{color:#fff}
 .sb{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
-.main{container-type:inline-size;container-name:main}
-@media (max-width:1200px){
-  .top{grid-template-columns:280px 1fr}
-  .body{grid-template-columns:280px 1fr auto}
-  .user .org{display:none}
-  .user{white-space:nowrap}
-  .chat-h{padding:14px;letter-spacing:.06em;white-space:nowrap}
-  .chat-h .seg button{padding:4px 8px;white-space:nowrap}
-  .roster{padding:10px 14px}
-}
-.ttl{order:1}
-.sb{order:2}
-.wf-steps{order:3}
-.sb .short{display:none}
-/* workflow always gets its own row under the title + actions */
-.tabs{flex-wrap:wrap;row-gap:10px;padding:12px 20px 12px 28px}
-.wf-steps{flex-basis:100%;justify-content:space-between}
-.wf-line{flex:1 1 12px;max-width:none;margin:0 6px}
-@container main (max-width:1120px){
-  .wf-t small{display:none}
-  .wf-step{padding:6px 8px 6px 6px}
-  .tabs{padding:12px 20px}
-  .ttl{font-size:17px}
-}
-@container main (max-width:900px){
-  .wf-step:not(.on) .wf-t{display:none}
-  .wf-step{gap:8px}
-  .sb .clock{display:none}
-}
-@container main (max-width:720px){
-  .sb .long{display:none}
-  .sb .short{display:inline}
-  .ttl{font-size:15px}
-}
-@container main (max-width:520px){
-  .ttl span{display:block}
-}
 
 .canvas{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -335,9 +298,113 @@ tr.changed td{background:rgba(25,194,160,.06)}
   .mact{padding:22px 48px 28px;gap:14px}
   .mact .btn{padding:16px;font-size:15px;border-radius:8px}
 }
+
+/* ================= responsive (kept last so it overrides base styles) ================= */
+.main{container-type:inline-size;container-name:main}
+@media (max-width:1200px){
+  .top{grid-template-columns:280px 1fr}
+  .body{grid-template-columns:280px 1fr auto}
+  .user .org{display:none}
+  .user{white-space:nowrap}
+  .chat-h{padding:14px;letter-spacing:.06em;white-space:nowrap}
+  .chat-h .seg button{padding:4px 8px;white-space:nowrap}
+  .roster{padding:10px 14px}
+}
+.ttl{order:1}
+.sb{order:2}
+.wf-steps{order:3}
+.sb .short{display:none}
+/* workflow always gets its own row under the title + actions */
+.tabs{flex-wrap:wrap;row-gap:10px;padding:12px 20px 12px 28px}
+.wf-steps{flex-basis:100%;justify-content:space-between}
+.wf-line{flex:1 1 12px;max-width:none;margin:0 6px}
+@container main (max-width:1120px){
+  .wf-t small{display:none}
+  .wf-step{padding:6px 8px 6px 6px}
+  .tabs{padding:12px 20px}
+  .ttl{font-size:17px}
+}
+@container main (max-width:900px){
+  .wf-step:not(.on) .wf-t{display:none}
+  .wf-step{gap:8px}
+  .sb .clock{display:none}
+}
+@container main (max-width:720px){
+  .sb .long{display:none}
+  .sb .short{display:inline}
+  .ttl{font-size:15px}
+}
+@container main (max-width:520px){
+  .ttl span{display:block}
+}
+
+/* ================= mobile ================= */
+.mnav{display:none;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);background:var(--panel)}
+.mnav button{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;color:var(--muted);position:relative;border-top:2px solid transparent}
+.mnav button.on{color:var(--teal);border-top-color:var(--teal);background:var(--panel2)}
+.mnav button.new::after{content:"";position:absolute;top:12px;right:calc(50% - 64px);width:8px;height:8px;border-radius:50%;background:var(--orange);box-shadow:0 0 6px var(--orange)}
+@media (max-width:760px){
+  .app{grid-template-rows:56px 1fr 58px;height:100vh;height:100dvh}
+  .top{grid-template-columns:1fr auto}
+  .brand{border-right:0;font-size:15px;padding:0 14px;gap:10px}
+  .logo{width:30px;height:30px}
+  .nav{padding:0 14px}
+  .crumbs,.user > div:first-child{display:none}
+  .body{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .main{display:contents}
+  .tabs{order:1;padding:10px 14px;row-gap:8px;flex-shrink:0}
+  .cap{order:2;flex-wrap:wrap;gap:8px;padding:8px 14px 11px;flex-shrink:0}
+  .cap .t{order:3;flex-basis:100%;font-size:13px}
+  .cap .k{margin-right:auto}
+  .chat{order:3;flex:1;min-height:0;border-right:0}
+  .canvas{order:4;flex:1;min-height:0;overflow:auto;padding:14px;gap:12px}
+  body[data-pane=chat] .canvas{display:none}
+  body[data-pane=room] .chat{display:none}
+  .mnav{display:grid}
+  .ttl{font-size:15px;margin-right:0}
+  .wf-t small,.wf-step:not(.on) .wf-t{display:none}
+  .wf-step{padding:4px 8px 4px 4px;gap:6px}
+  .wf-n{width:24px;height:24px;font-size:11px}
+  .wf-line{margin:0 3px}
+  .sb .long,.sb .clock,.sb [data-wf]{display:none}
+  .sb .short{display:inline}
+  .sb .btn{padding:7px 10px}
+  .drawer{position:fixed;left:0;right:0;top:56px;bottom:58px;width:auto;z-index:25;border-left:0}
+  .fhead{flex-wrap:wrap;align-items:flex-start;padding:14px 14px 10px;gap:10px}
+  .fhead h2{font-size:18px}
+  .fhead p{font-size:12.5px}
+  .fbody{padding:12px 14px 14px}
+  .ftabs{padding:0 6px;overflow-x:auto}
+  .ftabs button{padding:10px 8px;font-size:13px;white-space:nowrap}
+  .dir,.two,.scope,.grid2{grid-template-columns:1fr !important}
+  .kpis{flex-wrap:wrap;gap:8px}
+  .kpi{flex:1 1 calc(50% - 4px);padding:12px}
+  .kpi .v{font-size:20px}
+  .toolbar,.purp-strip,.cfg-r,.panel-h{flex-wrap:wrap}
+  .vline{row-gap:6px}
+  .vbar{width:12px;margin:0 4px}
+  .panel-h{padding:12px 14px}
+  .wg-b{padding:12px}
+  .act{gap:8px;padding:12px}
+  .act div{padding:10px 6px}
+  .act b{font-size:18px}
+  td,th{padding:9px 10px}
+  .hm{display:none}
+  .ch-b{font-size:13.5px}
+  .purpose{font-size:15px}
+  .banner{align-items:flex-start}
+  .modal{overflow:auto;place-items:start center}
+  .mbox .mb{padding:20px;gap:12px}
+  .mbox h2{font-size:22px}
+  .mflow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mflow .ar{display:none}
+  .mact{flex-direction:column-reverse;padding:14px 20px 18px}
+  .toolbar .crumb2{display:block;line-height:1.6}
+  .badge-ghost{white-space:nowrap}
+}
 </style>
 </head>
-<body>
+<body data-pane="chat">
 <div class="app">
   <header class="top">
     <div class="brand">
@@ -364,6 +431,7 @@ tr.changed td{background:rgba(25,194,160,.06)}
     </main>
     <aside class="drawer" id="drawer" hidden></aside>
   </div>
+  <nav class="mnav" id="mnav"><button data-pane="chat">💬 Conversation</button><button data-pane="room">▦ Room</button></nav>
 </div>
 <div class="modal" id="welcome" hidden>
   <div class="mbox">
@@ -570,8 +638,8 @@ function charterView(){
     <div class="fbody">
       ${sec(1,'Purpose · why this room exists',c>=1,c>=1?`<div class="purpose">${PURPOSE}</div>`:'<div class="wait">The Room Manager will ask why this room exists.</div>','ch1')}
       ${sec(2,'Focus · what’s in and out of scope',c>=2,c>=2?`<div class="scope"><div><div class="dl">In scope</div><div class="tags">${IN_SCOPE.map(x=>`<span class="tag in">${x}</span>`).join('')}</div></div><div><div class="dl">Out of scope</div><div class="tags">${OUT_SCOPE.map(x=>`<span class="tag out">${x}</span>`).join('')}</div></div></div>`:'<div class="wait">Next, the Room Manager will ask what to include and leave out.</div>','ch2')}
-      ${sec(3,'Objectives · how we’ll know it worked',c>=3,c>=3?`<table><thead><tr><th style="width:36px"></th><th>Objective</th><th>Owner</th><th>Measure of success</th></tr></thead><tbody>
-        ${objs.map((o,i)=>`<tr class="${o.changed&&S.newItem==='tight'?'changed':''}"><td><span class="obj-n">${i+1}</span></td><td class="nm">${o.n}${o.changed?' <span class="badge-new">EDITED</span>':''}</td><td>${o.o}</td><td style="color:#b8c6db">${o.m}</td></tr>`).join('')}</tbody></table>`:'<div class="wait">Then it will propose measurable objectives, each with an owner.</div>','ch3')}
+      ${sec(3,'Objectives · how we’ll know it worked',c>=3,c>=3?`<table><thead><tr><th style="width:36px"></th><th>Objective</th><th class="hm">Owner</th><th>Measure of success</th></tr></thead><tbody>
+        ${objs.map((o,i)=>`<tr class="${o.changed&&S.newItem==='tight'?'changed':''}"><td><span class="obj-n">${i+1}</span></td><td class="nm">${o.n}${o.changed?' <span class="badge-new">EDITED</span>':''}</td><td class="hm">${o.o}</td><td style="color:#b8c6db">${o.m}</td></tr>`).join('')}</tbody></table>`:'<div class="wait">Then it will propose measurable objectives, each with an owner.</div>','ch3')}
       <div class="ch-sec ${nw('ch4')}"><h4><span class="num">✓</span>Agreement</h4><div class="ch-b" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
         <span class="who"><span class="hum" style="border-color:#8b8cf6;color:#8b8cf6">JD</span>Jan D. · Mission Lead</span>${c===4?chip('bound','Agreed'):chip('na','Pending')}
         <span class="who" style="margin-left:12px"><span class="ag" style="color:var(--teal);border-color:var(--teal)">✦</span>Room Manager</span>${c>=1?chip('offered','Drafted'):chip('na','Waiting')}
@@ -709,8 +777,8 @@ function memorialView(){
     ${objectivesPanel('Outcome against the charter')}
     <div class="panel"><div class="fhead"><div><div class="crumb2">End of session</div><h2>Memorialize the session</h2><p>Commit the session’s final artifacts to persistent corporate memory, then close the workspace.</p></div>
       ${S.closed?chip('bound','Committed'):`<button class="btn pri" data-pill="Memorialize &amp; close">Memorialize &amp; close</button>`}</div>
-    <table><thead><tr><th>Artifact</th><th>Type</th><th>Owner</th><th>Reason</th><th style="width:130px">Decision</th></tr></thead><tbody>
-      ${m.map(x=>`<tr><td class="nm">${x.n}</td><td class="mono" style="color:var(--muted)">${x.t}</td><td>${x.o}</td><td style="color:#b8c6db">${x.why}</td><td>${x.keep?chip('bound',S.closed?'Committed':'Commit'):chip(x.t==='Ghost widget'?'drift':'na','Discard')}</td></tr>`).join('')}</tbody></table></div>
+    <table><thead><tr><th>Artifact</th><th class="hm">Type</th><th class="hm">Owner</th><th>Reason</th><th style="width:110px">Decision</th></tr></thead><tbody>
+      ${m.map(x=>`<tr><td class="nm">${x.n}</td><td class="mono hm" style="color:var(--muted)">${x.t}</td><td class="hm">${x.o}</td><td style="color:#b8c6db">${x.why}</td><td>${x.keep?chip('bound',S.closed?'Committed':'Commit'):chip(x.t==='Ghost widget'?'drift':'na','Discard')}</td></tr>`).join('')}</tbody></table></div>
     ${!S.promoted&&!S.closed?`<div class="note">The Supplier Exposure Model is still a private ghost widget, so it will be discarded. Promote it first if the room should keep it.</div>`:''}`;
 }
 
@@ -780,10 +848,23 @@ function runPill(label){
     case 'close': S.closed=true; break;
     case 'ch1': case 'ch2': case 'ch3': case 'ch4': S.ch=+p.a[2]; S.newItem=p.a; break;
     case 'tight': S.tight=true; S.newItem='tight'; break;
-    case 'next': return go(cur+1);
+    case 'next': go(cur+1); flagPane('room'); return;
   }
   render();
+  if (isM()){
+    if (p.a){ flagPane('room'); if(!AP.on) setTimeout(()=>setPane('room'),900); }
+    else flagPane('chat');
+  }
 }
+
+/* ================= mobile panes ================= */
+const MQ=window.matchMedia?window.matchMedia('(max-width:760px)'):{matches:false}, isM=()=>MQ.matches;
+function setPane(p){
+  document.body.dataset.pane=p;
+  document.querySelectorAll('#mnav button').forEach(b=>{ b.classList.toggle('on',b.dataset.pane===p); if(b.dataset.pane===p) b.classList.remove('new'); });
+  if (p==='chat'){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
+}
+function flagPane(p){ if(isM() && document.body.dataset.pane!==p) document.querySelector(`#mnav [data-pane="${p}"]`).classList.add('new'); }
 
 /* ================= autoplay ================= */
 const AP={on:false, paused:false, token:0, done:0, total:0, text:''};
@@ -802,17 +883,21 @@ async function autoplay(){
   try{
     for(let i=0;i<STEPS.length;i++){
       if (cur!==i) go(i);
-      S.drawer='step'; render();
+      S.drawer=isM()?null:'step'; render();
+      if (isM()) setPane('room');
       caption(`STEP ${i+1} OF ${STEPS.length}`, `<b>${STEPS[i].n}.</b> ${STEPS[i].notes[0]}`);
       await hold(4500,tok); AP.done++;
       for(const l of STEPS[i].auto){
+        if (isM()){ setPane('chat'); await hold(400,tok); }
         const b=[...document.querySelectorAll('#sugs .sug')].find(x=>x.dataset.pill===l);
         if (!b){ AP.done++; continue; }
-        caption(`STEP ${i+1} OF ${STEPS.length}`, `Clicking the suggestion <b style="color:#ffd3a0">✦ ${l}</b>`);
+        caption(`STEP ${i+1} OF ${STEPS.length}`, `${isM()?'Tapping':'Clicking'} the suggestion <b style="color:#ffd3a0">✦ ${l}</b>`);
         b.classList.add('hl'); b.scrollIntoView({block:'nearest'});
         await hold(1400,tok);
+        const nav = STEPS[i].pills.find(q=>q.l===l)?.a==='next';
         runPill(l); AP.done++; renderCap();
-        await hold(i===STEPS.length-1?1500:3200,tok);
+        if (isM() && !nav){ await hold(1600,tok); setPane('room'); await hold(2400,tok); }
+        else await hold(i===STEPS.length-1?1500:3200,tok);
       }
     }
     caption('WALKTHROUGH COMPLETE', 'That’s one full session, from agreeing the purpose to memorializing the results. Click any step in the header to look around.');
@@ -826,7 +911,8 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('button'); if(!t) return;
   const ds=t.dataset;
   if (t.hasAttribute('data-play-start')){ document.getElementById('welcome').hidden=true; autoplay(); return; }
-  if (t.hasAttribute('data-explore')){ document.getElementById('welcome').hidden=true; S.drawer='step'; return render(); }
+  if (t.hasAttribute('data-explore')){ document.getElementById('welcome').hidden=true; S.drawer=isM()?null:'step'; return render(); }
+  if (ds.pane){ setPane(ds.pane); return; }
   if (t.hasAttribute('data-play')){ if(!AP.on) autoplay(); else { AP.paused=!AP.paused; render(); renderCap(); } return; }
   if (t.hasAttribute('data-stop')) return stopPlay();
   if (AP.on && e.isTrusted && !AP.paused){ AP.paused=true; caption('PAUSED','You took over. Press <b>▶ Resume</b> to carry on with the walkthrough, or <b>■ Stop</b> to explore on your own.'); }
@@ -843,7 +929,9 @@ document.addEventListener('click',e=>{
   if (t.hasAttribute('data-home')){ S.canvas='directory'; S.cat=null; S.art=null; return render(); }
 });
 document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1); if(e.key==='Escape'&&S.drawer){S.drawer=null;render();} });
-const H0=location.hash, mm=H0.match(/step-(\d+)/); go(mm?+mm[1]-1:0);
+const H0=location.hash, mm=H0.match(/step-(\d+)/);
+setPane(/room/.test(H0)?'room':'chat');
+go(mm?+mm[1]-1:0);
 if (/play/.test(H0)) autoplay();
 else if (!mm) document.getElementById('welcome').hidden=false;
 </script>
