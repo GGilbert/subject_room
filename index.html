@@ -1,1179 +1,799 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Subject Room - Operator Dashboard</title>
-  
-  <script>
-    (function() {
-      const origWarn = console.warn;
-      const origInfo = console.info;
-      console.warn = function(...args) {
-        if (typeof args[0] === 'string' && (
-          args[0].includes('cdn.tailwindcss.com') ||
-          args[0].includes('Babel transformer') ||
-          args[0].includes('defaultProps')
-        )) return;
-        origWarn.apply(console, args);
-      };
-      console.info = function(...args) {
-        if (typeof args[0] === 'string' && args[0].includes('React DevTools')) return;
-        origInfo.apply(console, args);
-      };
-    })();
-  </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSL Cast · Subject Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c1426; --panel:#111b30; --panel2:#17233b; --panel3:#1d2a45; --line:#253350; --line2:#2f3f60;
+  --text:#e3e9f3; --muted:#93a2bc; --dim:#64748b;
+  --teal:#22c7dc; --teal2:#14a9bd; --green:#10b981; --orange:#e8890c; --violet:#6d6ff0;
+  --s-bound:#19c2a0; --s-gap:#f0a429; --s-offered:#8b8cf6; --s-drift:#f2506b; --s-na:#3b4a66;
+  --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;overflow:hidden}
+button{font-family:inherit;cursor:pointer;color:inherit;background:none;border:0}
+.app{display:grid;grid-template-rows:64px 1fr;height:100vh}
 
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-is@18/umd/react-is.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/prop-types/prop-types.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          animation: {
-            'spin-slow': 'spin 3s linear infinite',
-            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          }
-        }
-      }
-    }
-  </script>
+/* top bar */
+.top{display:grid;grid-template-columns:320px 1fr;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:12px;padding:0 18px;border-right:1px solid var(--line);font-weight:700;font-size:16px}
+.logo{width:34px;height:34px;border-radius:6px;background:#fff;display:grid;place-items:center}
+.nav{display:flex;align-items:center;gap:18px;padding:0 22px}
+.crumbs{display:flex;gap:10px;align-items:center;font-weight:600;color:#c9d6ea;white-space:nowrap}
+.crumbs span.sep{color:var(--dim)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;padding:2px;gap:2px}
+.seg button{padding:4px 10px;border-radius:6px;color:var(--muted);font-size:11px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.seg button.on{background:var(--panel3);color:var(--teal)}
+.user{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+.user b{font-family:var(--sans);color:var(--text);font-size:13px;display:block}
+.avatar{width:34px;height:34px;border-radius:8px;background:var(--panel3);border:1px solid var(--line2);display:grid;place-items:center;font-weight:700}
 
-  <script>
-    Babel.registerPreset("tsx", {
-      presets: [
-        [Babel.availablePresets["typescript"], { ignoreExtensions: true }],
-        [Babel.availablePresets["react"], { runtime: "classic" }]
-      ]
-    });
-  </script>
-  
-  <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
-    .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-    .ghost-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(8px); border: 1px dashed rgba(245, 158, 11, 0.5); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-    
-    .toggle-checkbox:checked { right: 0; border-color: #6366f1; }
-    .toggle-checkbox:checked + .toggle-label { background-color: #4f46e5; }
-  </style>
+/* body */
+.body{display:grid;grid-template-columns:320px 1fr auto;min-height:0}
+.chat{border-right:1px solid var(--line);background:#0e172a;display:flex;flex-direction:column;min-height:0}
+.chat-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);font-weight:700;letter-spacing:.1em;font-size:12px;color:#cfe3f0}
+.chat-h .seg{margin-left:auto}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.roster{display:flex;align-items:center;gap:6px;padding:10px 18px;border-bottom:1px solid var(--line)}
+.roster .lbl{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em;margin-right:4px}
+.rsep{width:1px;height:20px;background:var(--line2);margin:0 4px}
+.hum{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--panel3);border:2px solid}
+.ag{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:500;border:2px solid var(--line2);background:var(--panel2);color:var(--muted);position:relative}
+.ag.computing{border-color:var(--teal);color:var(--teal);box-shadow:0 0 8px rgba(34,199,220,.35)}
+.ag.blocked{border-color:var(--s-gap);border-style:dashed;color:var(--s-gap)}
+.ag.sel{outline:2px solid #fff;outline-offset:1px}
+.av{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.avt{aspect-ratio:16/10;border-radius:8px;background:linear-gradient(160deg,#1d2a45,#0d1629);border:1px solid var(--line2);position:relative;display:grid;place-items:center;font-size:20px;font-weight:700;color:#5d6f92}
+.avt.on{border-color:var(--teal2);box-shadow:0 0 0 1px var(--teal2) inset}
+.avt .nm{position:absolute;left:6px;bottom:5px;font-family:var(--mono);font-size:9.5px;color:#cfe3f0;background:rgba(5,9,18,.7);padding:1px 6px;border-radius:4px}
+.avt .lv{position:absolute;right:6px;top:5px;font-family:var(--mono);font-size:9px;color:#fff;background:#c0263f;padding:1px 6px;border-radius:4px;letter-spacing:.08em}
+.msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45}
+.msg::before{content:attr(data-who);display:block;font-family:var(--mono);font-size:10px;margin-bottom:4px;letter-spacing:.06em}
+.msg.ai{background:var(--panel2);border:1px solid var(--line)}
+.msg.ai::before{content:"✦ " attr(data-who);color:var(--teal)}
+.msg.agent{background:#0f2a35;border:1px solid #1b5266}
+.msg.agent::before{color:#7ee8f5}
+.msg.me{align-self:flex-end;background:#163a4c;border:1px solid #1f5068}
+.msg.me::before{color:#8fd8e8}
+.msg.p{border:1px dashed #6b430b;background:#22180a}
+.msg.p::before{content:"🔒 " attr(data-who);color:var(--s-gap)}
+.msg.p.me{align-self:flex-end}
+.msg.tr{font-style:italic;border-left:2px solid var(--teal2);background:#0d1629}
+.sugs{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px}
+.sug{font-size:12px;padding:6px 10px;border-radius:14px;border:1px solid #6b430b;background:#2d1d08;color:#ffd3a0;text-align:left}
+.sug:hover{background:#3d280c}
+.chat-in{margin:12px;border:1px solid var(--line2);border-radius:10px;padding:12px;color:var(--dim);font-size:13px;display:flex;justify-content:space-between}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.tabs{display:flex;align-items:center;gap:8px;padding:12px 20px 12px 28px;border-bottom:1px solid var(--line)}
+.ttl{font-size:19px;font-weight:700;white-space:nowrap;margin-right:10px}
+.ttl span{color:var(--teal)}
+.wf-steps{display:flex;align-items:center;flex:1;justify-content:center}
+.wf-line{flex:0 0 18px;height:2px;background:var(--line2)}
+.wf-step{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 6px;border-radius:10px;border:1px solid transparent;text-align:left}
+.wf-step:hover{background:var(--panel2)}
+.wf-step.on{border-color:#2d5aa8;background:#122347}
+.wf-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:12px;border:1px solid var(--line2);color:var(--muted);flex-shrink:0}
+.wf-step.on .wf-n{background:var(--teal2);border-color:var(--teal2);color:#04202a;font-weight:700}
+.wf-step.t.on{border-color:#3a3f86;background:#1c2050}
+.wf-step.t.on .wf-n{background:#5357c8;border-color:#5357c8;color:#fff}
+.wf-t{font-weight:700;font-size:13px;letter-spacing:.02em;color:#c9d4e5;white-space:nowrap;display:flex;flex-direction:column}
+.wf-t small{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);letter-spacing:0}
+.wf-step.on .wf-t{color:#fff}
+.sb{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
+body.insp .wf-t small{display:none}
+body.insp .ttl{font-size:16px}
+body.insp .wf-line{flex-basis:12px}
+
+.canvas{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.btn-ai{background:var(--orange);color:#fff;font-weight:700;padding:9px 16px;border-radius:6px;font-size:13px}
+.btn{padding:8px 14px;border-radius:6px;font-weight:700;font-size:12px;letter-spacing:.06em;border:1px solid var(--line2);color:#cbd5e1;white-space:nowrap}
+.btn.pri{background:var(--teal2);border-color:var(--teal2);color:#04202a}
+.btn.ok{border-color:var(--green);color:#4ee0ad}
+.btn.v{background:#3a3fa0;border-color:#5357c8;color:#fff}
+.btn.warn{border-color:#6b430b;color:#ffd3a0;background:#2d1d08}
+.btn.sm{padding:5px 10px;font-size:11px}
+.clock{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;white-space:nowrap}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0}
+.panel-h{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);gap:10px}
+.panel-h h3{font-size:13px;letter-spacing:.12em;font-weight:700;color:#c3cfe2;text-transform:uppercase}
+.panel-h .sub{font-size:12px;color:var(--muted);margin-left:12px;letter-spacing:0;text-transform:none;font-weight:400}
+.fhead{display:flex;justify-content:space-between;align-items:flex-end;padding:16px 20px 12px;gap:16px}
+.fhead h2{font-size:20px;margin-top:6px}
+.fhead p{color:#aab8cf;font-size:13px;margin-top:4px;line-height:1.45;max-width:720px}
+.crumb2{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.crumb2 b{color:var(--text)}
+.crumb2 button{color:var(--muted)}
+.crumb2 button.on,.crumb2 button:hover{color:var(--teal)}
+.ftabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--line)}
+.ftabs button{padding:10px 14px;font-weight:600;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent;display:flex;gap:8px;align-items:center}
+.ftabs button.on{color:var(--teal);border-bottom-color:var(--teal)}
+.ftabs .ct{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:9px;background:var(--panel3);color:var(--muted)}
+.fbody{padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-bound{color:var(--s-bound);background:rgba(25,194,160,.12)}
+.c-gap{color:var(--s-gap);background:rgba(240,164,41,.12)}
+.c-offered{color:var(--s-offered);background:rgba(139,140,246,.14)}
+.c-drift{color:var(--s-drift);background:rgba(242,80,107,.14)}
+.c-na{color:#7d8ba6;background:rgba(80,95,125,.18)}
+.c-live{color:var(--teal);background:rgba(34,199,220,.12)}
+.mono{font-family:var(--mono);font-size:11.5px;color:#cfd6ff}
+.badge-new{font-family:var(--mono);font-size:10px;background:#3a3fa0;color:#fff;padding:2px 6px;border-radius:4px}
+.badge-ghost{font-family:var(--mono);font-size:10px;background:#2d1d08;color:var(--s-gap);border:1px solid #6b430b;padding:1px 6px;border-radius:4px}
+
+/* person / agent cards */
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--panel2);border:1px solid var(--line2);border-top:3px solid var(--violet);border-radius:8px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:8px}
+.card.new{animation:pulse 1.6s ease-in-out 2;border-top-color:var(--s-bound)}
+@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(25,194,160,.35)}}
+.card .hd{display:flex;align-items:center;gap:10px}
+.card .nm{font-weight:700;font-size:14.5px}
+.card .rl{font-family:var(--mono);font-size:10.5px;color:#8fa6c8;margin-top:2px}
+.card .ds{font-size:12.5px;color:#aab8cf;line-height:1.4}
+.card .ft{display:flex;align-items:center;gap:8px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap}
+.skill{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:4px;border:1px solid #3a3f86;color:#c4c5ff;background:#1c2050}
+.gate{font-size:12px;color:#ffd3a0;background:#2d1d08;border:1px solid #6b430b;border-radius:6px;padding:7px 9px;line-height:1.4}
+.dash{border:1px dashed var(--green);color:#4ee0ad;padding:8px 14px;border-radius:6px;font-weight:700;font-size:12px;letter-spacing:.08em}
+
+/* dashboard config rows */
+.cfg-g{border:1px solid var(--line2);border-radius:10px;background:var(--panel2);overflow:hidden}
+.cfg-g h4{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.cfg-r{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px}
+.cfg-r + .cfg-r{border-top:1px dashed var(--line)}
+.cfg-r.new{background:rgba(25,194,160,.08)}
+.cfg-r b{font-size:13.5px;display:flex;gap:8px;align-items:center}
+.cfg-r small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:2px}
+.tg{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.tg i{width:30px;height:16px;border-radius:9px;background:var(--line2);position:relative;transition:.15s}
+.tg i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#93a2bc;transition:.15s}
+.tg.on{color:var(--teal)}
+.tg.on i{background:var(--teal2)}
+.tg.on i::after{left:16px;background:#04202a}
+
+/* directory */
+.dir{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.dir-g h4{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.dir-g h4 .n{margin-left:auto;background:var(--panel3);padding:1px 7px;border-radius:9px}
+.dir-g .list{display:flex;flex-direction:column;gap:8px}
+.fc{background:var(--panel2);border:1px solid var(--line2);border-top:3px solid var(--violet);border-radius:8px;padding:10px 12px;text-align:left;width:100%;display:block}
+.fc:hover{border-color:#4a5d86}
+.fc.live{border-top-color:var(--teal)}
+.fc.ghost{border-style:dashed;border-color:#6b430b;border-top:3px dashed var(--s-gap);background:#1a160f}
+.fc.new{animation:pulse 1.6s ease-in-out 2}
+.fc .row1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fc .nm{font-weight:700;font-size:13.5px}
+.fc .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:6px}
+.empty{color:var(--dim);font-style:italic;font-size:12.5px;border:1px dashed var(--line2);border-radius:8px;padding:12px;text-align:center}
+
+/* pipeline */
+.vline{display:flex;align-items:center;flex-wrap:wrap}
+.vstep{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.vstep i{width:10px;height:10px;border-radius:50%;border:2px solid var(--line2);display:inline-block}
+.vstep.done{color:var(--s-bound)}
+.vstep.done i{background:var(--s-bound);border-color:var(--s-bound)}
+.vstep.cur{color:var(--text)}
+.vstep.cur i{border-color:var(--teal);box-shadow:0 0 0 3px rgba(34,199,220,.25)}
+.vbar{width:28px;height:2px;background:var(--line2);margin:0 8px}
+
+/* widgets */
+.wg{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.wg.ghost{border:1px dashed #6b430b;background:#141009}
+.wg.promoted{border-color:#3a3f86;box-shadow:0 0 0 1px #3a3f86 inset}
+.wg .panel-h h3{display:flex;gap:8px;align-items:center}
+.wg.ghost .panel-h h3{color:var(--s-gap)}
+.wg-b{padding:16px 20px;position:relative}
+.wm{position:absolute;inset:0;display:grid;place-items:center;font-size:80px;font-weight:700;color:var(--s-gap);opacity:.05;transform:rotate(-8deg);pointer-events:none}
+.legend{display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+svg text{font-family:var(--mono)}
+
+/* monitoring */
+.kpis{display:flex;gap:12px}
+.kpi{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:24px;font-weight:700}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:12.5px;line-height:1.45}
+tr:last-child td{border-bottom:0}
+td.nm{font-weight:600}
+td.nm small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:400}
+td.num{font-family:var(--mono);text-align:right}
+.who{display:flex;align-items:center;gap:10px}
+.act{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 20px}
+.act div{background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:14px;text-align:center}
+.act b{display:block;font-size:22px;font-family:var(--mono);font-weight:500}
+.act span{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.act small{display:block;color:var(--dim);font-size:11px;margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.total{display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.total b{color:var(--s-bound);font-size:13px}
+
+/* memorialize */
+.banner{display:flex;gap:14px;align-items:center;padding:14px 18px;border-radius:10px;border:1px solid #1a6e5f;background:rgba(25,194,160,.08);font-size:13.5px}
+.banner b{font-size:15px;display:block}
+.banner .ic{width:34px;height:34px;border-radius:50%;background:var(--s-bound);color:#04202a;display:grid;place-items:center;font-weight:700;flex-shrink:0}
+.note{font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:8px;background:#0d1629;border:1px solid var(--line);color:#c2cee0}
+
+/* drawer */
+.drawer{width:420px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.drawer[hidden]{display:none}
+.dr-h{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+.dr-h h2{font-size:15px;letter-spacing:.1em;text-transform:uppercase}
+.dr-body{flex:1;overflow:auto;padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.dr-body > *{flex-shrink:0}
+.dr-foot{display:flex;gap:10px;padding:14px 22px;border-top:1px solid var(--line)}
+.dr-foot .btn{flex:1;padding:11px}
+.ilist{list-style:none;display:flex;flex-direction:column;gap:12px}
+.ilist li{font-size:13.5px;line-height:1.5;color:#c9d4e5;padding-left:14px;position:relative}
+.ilist li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:1px;background:var(--teal)}
+.dl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.sk{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;background:var(--panel2);border:1px solid var(--line2)}
+.x{font-size:22px;color:var(--muted)}
+
+/* charter */
+.ch-sec{border:1px solid var(--line2);border-radius:10px;background:var(--panel2);overflow:hidden}
+.ch-sec.new{animation:pulse 1.6s ease-in-out 2;border-color:#1a6e5f}
+.ch-sec h4{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.ch-sec h4 .num{width:20px;height:20px;border-radius:6px;background:#103447;color:#7ee8f5;display:grid;place-items:center;font-size:10.5px}
+.ch-sec h4 .chip{margin-left:auto}
+.ch-b{padding:12px 14px;font-size:14px;line-height:1.5}
+.ch-b .wait{color:var(--dim);font-style:italic;font-size:13px}
+.purpose{font-size:16px;font-weight:600;color:#e3f8fb}
+.scope{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.scope .dl{margin-bottom:6px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;padding:4px 10px;border-radius:14px;border:1px solid}
+.tag.in{color:#6ee7c3;border-color:#1a6e5f;background:rgba(25,194,160,.08)}
+.tag.out{color:#93a2bc;border-color:var(--line2);text-decoration:line-through;text-decoration-color:#64748b}
+.obj-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11px;background:rgba(34,199,220,.12);color:var(--teal)}
+tr.changed td{background:rgba(25,194,160,.06)}
+.purp-strip{display:flex;gap:10px;align-items:center;font-size:12.5px;color:#c8d3e4;background:#0d1629;border:1px solid var(--line2);border-radius:8px;padding:8px 12px}
+.purp-strip b{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.06em}
+
+/* autoplay + welcome */
+.sug.hl{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,137,12,.35);transform:scale(1.04);transition:.2s}
+.btn.play{background:var(--orange);border-color:var(--orange);color:#fff}
+.cap{position:relative;display:flex;align-items:center;gap:14px;background:#1a1408;border-bottom:1px solid #6b430b;border-left:3px solid var(--orange);padding:10px 20px 12px 28px}
+.cap .t{flex:1}
+.cap[hidden]{display:none}
+.cap .k{font-family:var(--mono);font-size:10.5px;color:#ffd3a0;letter-spacing:.08em;white-space:nowrap}
+.cap .t{font-size:13.5px;color:var(--text);line-height:1.4}
+.cap .prog{height:3px;background:var(--line2);position:absolute;left:0;right:0;bottom:0;overflow:hidden}
+.cap .prog i{display:block;height:100%;background:var(--orange);transition:width .3s}
+.modal{position:fixed;inset:0;background:rgba(5,9,18,.78);display:grid;place-items:center;z-index:30;padding:16px}
+.modal[hidden]{display:none}
+.mbox{width:min(640px,100%);background:var(--panel);border:1px solid var(--line2);border-radius:14px;overflow:hidden}
+.mbox .mb{padding:24px 26px;display:flex;flex-direction:column;gap:14px}
+.mbox h2{font-size:22px}
+.mbox p{color:#c2cee0;line-height:1.55;font-size:14px}
+.mflow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mflow span{border:1px solid var(--line2);border-radius:12px;padding:3px 9px;color:#c9d4e5}
+.mact{display:flex;gap:10px;padding:16px 26px;border-top:1px solid var(--line)}
+.mact .btn{flex:1;padding:12px;font-size:13px}
+</style>
 </head>
 <body>
-  <div id="root"></div>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo"><svg width="26" height="20" viewBox="0 0 26 20"><circle cx="6" cy="6" r="4.5" fill="#1d3fbf"/><circle cx="15" cy="5" r="4" fill="#3c6cf0"/><circle cx="10" cy="14" r="4.5" fill="#1a2f8f"/><circle cx="20" cy="13" r="4.5" fill="#5b8cff"/></svg></div>
+      OSL Cast Platform
+    </div>
+    <div class="nav">
+      <div class="crumbs">Org Hub <span class="sep">›</span> Subject Rooms <span class="sep">›</span> FP&amp;A Core Room</div>
+      <div class="user" style="margin-left:auto"><div><b id="userName">Jan D.</b><span id="userRole">Mission Lead</span> · Orchestration Services Limited</div><div class="avatar">J</div></div>
+    </div>
+  </header>
+  <div class="body">
+    <aside class="chat">
+      <div class="chat-h" id="chatH"></div>
+      <div id="chatTop"></div>
+      <div class="msgs" id="msgs"></div>
+      <div class="sugs" id="sugs"></div>
+      <div class="chat-in"><span id="chatPh">Instruct the Room Manager…</span><span>➤</span></div>
+    </aside>
+    <main class="main">
+      <div class="tabs" id="tabs"></div>
+      <div class="cap" id="cap" hidden></div>
+      <div class="canvas" id="canvas"></div>
+    </main>
+    <aside class="drawer" id="drawer" hidden></aside>
+  </div>
+</div>
+<div class="modal" id="welcome" hidden>
+  <div class="mbox">
+    <div class="mb">
+      <div class="dl" style="color:var(--teal)">OSL CAST · SUBJECT ROOM WALKTHROUGH</div>
+      <h2>Welcome to the Subject Room</h2>
+      <p>A <b>Subject Room</b> is a short-lived, shared workspace where people and AI agents work on one business question together. This one, the FP&amp;A Core Room, looks at why EMEA margins fell short in Q3.</p>
+      <p>The walkthrough follows one session from start to finish. On the left, an AI <b>Room Manager</b> guides the work in conversation. The <b style="color:#ffd3a0">✦ orange suggestions</b> under the chat are the next steps you can take.</p>
+      <div class="mflow"><span>1 Agree purpose</span>›<span>2 Configure room</span>›<span>3 Run session</span>›<span>4 Private sandbox</span>›<span>5 Monitor</span>›<span>6 Memorialize</span></div>
+      <p style="font-size:12.5px;color:var(--muted)">No experience needed. You can pause the walkthrough at any time, open “ⓘ Step description” for an explanation of each step, or move with the ← → keys.</p>
+    </div>
+    <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 2 min)</button></div>
+  </div>
+</div>
 
-  <script type="text/babel" data-presets="tsx">
-    const { useState, useEffect } = React;
-    const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } = window.Recharts;
+<script>
+/* ================= model ================= */
+const HUMANS = [
+  {id:'jan',   n:'Jan D.',  r:'Mission Lead', c:'#8b8cf6', approver:true},
+  {id:'sarah', n:'Sarah K', r:'Data Analyst', c:'#f7708f', approver:false},
+];
+const AGENTS = [
+  {id:'logistics',   n:'Logistics',   state:'idle',      model:'gpt-4o',            tx:12450, skills:['/route-opt','@weather-impact','/carrier-sla'],          desc:'Analyses transit routes and supply chain events.'},
+  {id:'forecasting', n:'Forecasting', state:'computing', model:'claude-3.5-sonnet', tx:45200, skills:['/margin-cascade','@rev-predict','/scenario-model'],    desc:'Builds financial models and predicts variances.'},
+  {id:'risk',        n:'Risk',        state:'blocked',   model:'gemini-1.5-pro',    tx:8100,  skills:['/supplier-exposure','@compliance-check','(p) risk-sim'], desc:'Monitors vendor compliance and calculates exposure.'},
+];
+const chip = (cls,l) => `<span class="chip c-${cls}">${l}</span>`;
+const initials = n => n.split(' ').map(x=>x[0]).join('').slice(0,2);
 
-    // Icons
-    const IconWrapper = ({ children, className = "w-5 h-5" }) => (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
-    );
-    const Users = (p) => <IconWrapper {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconWrapper>;
-    const Lock = (p) => <IconWrapper {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></IconWrapper>;
-    const Unlock = (p) => <IconWrapper {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></IconWrapper>;
-    const ArrowUpRight = (p) => <IconWrapper {...p}><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></IconWrapper>;
-    const Save = (p) => <IconWrapper {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>;
-    const Pause = (p) => <IconWrapper {...p}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></IconWrapper>;
-    const ChevronRight = (p) => <IconWrapper {...p}><polyline points="9 18 15 12 9 6"/></IconWrapper>;
-    const LayoutDashboard = (p) => <IconWrapper {...p}><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></IconWrapper>;
-    const FileText = (p) => <IconWrapper {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></IconWrapper>;
-    const Database = (p) => <IconWrapper {...p}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></IconWrapper>;
-    const BarChart2 = (p) => <IconWrapper {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></IconWrapper>;
-    const Wrench = (p) => <IconWrapper {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconWrapper>;
-    const Info = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></IconWrapper>;
-    const Plus = (p) => <IconWrapper {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></IconWrapper>;
-    const Settings = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></IconWrapper>;
-    const X = (p) => <IconWrapper {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></IconWrapper>;
-    const Edit = (p) => <IconWrapper {...p}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></IconWrapper>;
-    const Eye = (p) => <IconWrapper {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></IconWrapper>;
-    const EyeOff = (p) => <IconWrapper {...p}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></IconWrapper>;
-    const Bot = (p) => <IconWrapper {...p}><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></IconWrapper>;
-    
-    // New Icons for User Roster, Time, Video, Mic, Monitoring
-    const Clock = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconWrapper>;
-    const UserPlus = (p) => <IconWrapper {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></IconWrapper>;
-    const Video = (p) => <IconWrapper {...p}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></IconWrapper>;
-    const Mic = (p) => <IconWrapper {...p}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></IconWrapper>;
-    const PanelRightClose = (p) => <IconWrapper {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></IconWrapper>;
-    const AlignLeft = (p) => <IconWrapper {...p}><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></IconWrapper>;
-    const AlignJustify = (p) => <IconWrapper {...p}><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></IconWrapper>;
-    const Activity = (p) => <IconWrapper {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></IconWrapper>;
-    const Cpu = (p) => <IconWrapper {...p}><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></IconWrapper>;
-    const Send = (p) => <IconWrapper {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconWrapper>;
+/* state */
+let cur=0, maxReached=0;
+const fresh = () => ({
+  ch:0, tight:false,
+  cfgView:'users', sarah:false, sf:false, gate:false,
+  ledger:'text', canvas:'directory', cat:null, art:null,
+  cascade:false, ghost:false, promoted:false, approved:false,
+  submitted:false, q3:false, closed:false,
+  drawer:null, used:{}, newItem:null, vis:{sf:false, scraper:false},
+});
+let S = fresh();
+const extras={0:[],1:[],2:[],3:[],4:[],5:[]};
+function resetDemo(){ S=fresh(); for(const k in extras) extras[k]=[]; cur=0; maxReached=0; }
 
-    const marginData = [
-      { name: 'Q1', target: 4000, actual: 4400 },
-      { name: 'Q2', target: 3000, actual: 3200 },
-      { name: 'Q3', target: 2000, actual: 1800 },
-      { name: 'Q4', target: 2780, actual: 2900 },
-    ];
+/* charter */
+const PURPOSE='Explain the EMEA Q3 margin shortfall and agree a recovery plan.';
+const IN_SCOPE=['Logistics & freight costs','Tier 1 supplier exposure','EMEA region','Q3 actuals vs target'];
+const OUT_SCOPE=['Pricing strategy','Headcount','Other regions'];
+function objectives(){
+  return [
+    {n:'Explain the $200k EMEA Q3 margin gap by cost driver', o:'Forecasting', m:'Margin cascade published to the room', met:S.cascade},
+    {n:S.tight?'Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold':'Assess tier 1 supplier exposure if the strike continues', o:'Risk', m:'Exposure model shared with the room', met:S.promoted, changed:S.tight},
+    {n:'Agree a regional recovery action plan', o:'Jan D.', m:'Plan submitted for approval', met:S.submitted},
+  ];
+}
 
-    const exposureData = [
-      { category: 'Tier 1', risk: 85 },
-      { category: 'Tier 2', risk: 45 },
-      { category: 'Tier 3', risk: 20 },
-    ];
+function agentState(a){
+  if (a.id==='risk') return S.approved ? 'computing' : 'blocked';
+  if (a.id==='forecasting') return (cur===0||S.q3) ? 'idle' : 'computing';
+  return a.state;
+}
 
-    const agentsList = [
-      { id: 'logistics', name: 'Logistics', state: 'idle', color: 'slate', skills: ['/route-opt', '@weather-impact', '/carrier-sla'], desc: "Analyzes transit routes and supply chain events." },
-      { id: 'forecasting', name: 'Forecasting', state: 'computing', color: 'cyan', skills: ['/margin-cascade', '@rev-predict', '/scenario-model'], desc: "Builds financial models and predicts variances." },
-      { id: 'risk', name: 'Risk', state: 'blocked', color: 'amber', skills: ['/supplier-exposure', '@compliance-check', '(p) risk-sim'], desc: "Monitors vendor compliance and calculates exposure." }
-    ];
+function directory(){
+  const d = [
+    {t:'Deliverables', items:[
+      {id:'q3', title:'Q3 Executive Summary', type:'PDF Document', status:S.q3?'Ready':'Drafting', owner:'Forecasting', visible:true},
+      {id:'plan', title:'Regional Action Plan', type:'Doc Template', status:S.submitted?'Submitted':'Review', owner:'Jan D.', visible:true}]},
+    {t:'Charts & Analytics', items:[]},
+    {t:'Inputs & Data', items:[
+      {id:'logfeed', title:'Global Logistics Feed', type:'Live Stream', status:'Active', owner:'Logistics', visible:true}]},
+    {t:'Tools & Functions', items:[
+      {id:'sim', title:'Scenario Simulator', type:'Compute Sandbox', status:'Ready', owner:'System', visible:true},
+      {id:'scraper', title:'Competitor Scraper', type:'Agent Script', status:'Idle', owner:'System', visible:S.vis.scraper}]},
+  ];
+  if (S.cascade) d[1].items.push({id:'cascade', title:'EMEA Q3 Margin Cascade', type:'Live Widget', status:'Public', owner:'Forecasting', visible:true, live:true});
+  if (S.ghost) d[1].items.push({id:'ghost', title:'Supplier Exposure Model', type:S.promoted?'Live Widget':'Ghost Widget', status:S.promoted?'Public':'Private (p)', owner:'Risk', visible:true, ghost:!S.promoted, live:S.promoted});
+  if (S.sf) d[2].items.unshift({id:'sf', title:'Salesforce Q3 Opportunities', type:'Data View', status:'Synced', owner:'System', visible:S.vis.sf});
+  return d;
+}
 
-    const initialDirectoryData = [
-      {
-        title: "Deliverables",
-        icon: <FileText className="w-4 h-4 text-emerald-400" />,
-        items: [
-          { id: 1, title: 'Q3 Executive Summary', type: 'PDF Document', status: 'Drafting', visible: true, agent: 'Forecasting' },
-          { id: 2, title: 'Regional Action Plan', type: 'Doc Template', status: 'Review', visible: true, agent: 'JD' }
-        ]
-      },
-      {
-        title: "Charts & Analytics",
-        icon: <BarChart2 className="w-4 h-4 text-cyan-400" />,
-        items: [
-          { id: 3, title: 'EMEA Q3 Margin Cascade', type: 'Live Widget', status: 'Public', visible: true, isLive: true },
-          { id: 4, title: 'Supplier Exposure Model', type: 'Ghost Widget', status: 'Private (p)', visible: true, isGhost: true }
-        ]
-      },
-      {
-        title: "Inputs & Data",
-        icon: <Database className="w-4 h-4 text-pink-400" />,
-        items: [
-          { id: 5, title: 'Salesforce Q3 Opportunities', type: 'Data View', status: 'Synced', visible: true, agent: 'System' },
-          { id: 6, title: 'Global Logistics Feed', type: 'Live Stream', status: 'Active', visible: true, agent: 'Logistics' }
-        ]
-      },
-      {
-        title: "Tools & Functions",
-        icon: <Wrench className="w-4 h-4 text-indigo-400" />,
-        items: [
-          { id: 7, title: 'Scenario Simulator', type: 'Compute Sandbox', status: 'Ready', visible: true, agent: 'System' },
-          { id: 8, title: 'Competitor Scraper', type: 'Agent Script', status: 'Idle', visible: false, agent: 'System' }
-        ]
+/* ================= walkthrough ================= */
+const STEPS = [
+ {n:'Agree purpose', who:'Mission Lead · Jan D.', title:'Agree the room’s purpose, focus and objectives', agent:'Room Manager',
+  chat:[['ai','Before we set up the room, let’s agree why it exists. I’ll take you through three questions: the purpose, the focus, and the objectives we’ll measure the session against.','Room Manager']],
+  pills:[
+    {l:'Draft the purpose', when:()=>S.ch===0, me:'We need to understand why EMEA Q3 margins came in below target, and decide what to do about it.', r:'Purpose drafted: “Explain the EMEA Q3 margin shortfall and agree a recovery plan.” Next, what’s in and out of scope?', a:'ch1'},
+    {l:'Set the focus', when:()=>S.ch===1, me:'Focus on logistics costs and supplier risk. Leave pricing strategy and headcount out.', r:'Focus set. In scope: logistics and freight costs, tier 1 supplier exposure, EMEA, Q3 actuals vs target. Out of scope: pricing strategy, headcount, other regions.', a:'ch2'},
+    {l:'Propose objectives', when:()=>S.ch===2, r:'I’ve proposed three objectives, each with an owner and a measure of success. They’re on the canvas. Do you want to change any before we agree?', a:'ch3'},
+    {l:'Tighten objective 2', when:()=>S.ch===3&&!S.tight, me:'Objective 2 is vague. Make it measurable.', r:'Changed objective 2 to “Quantify tier 1 supplier exposure for a 3-week strike, with an escalation threshold.”', a:'tight'},
+    {l:'Agree the charter', when:()=>S.ch===3, r:'Charter v1.0 is agreed by Jan D. Every agent in the room will work to it, and the session will be checked against these objectives when it’s memorialized.', a:'ch4'},
+    {l:'Set up the room', when:()=>S.ch===4, r:'', a:'next', keep:true, silent:true},
+  ],
+  auto:['Draft the purpose','Set the focus','Propose objectives','Tighten objective 2','Agree the charter','Set up the room'],
+  notes:['Every room starts with an agreement on why it exists. The Room Manager agent leads it as a guided conversation.','It asks three things in order: the purpose, the focus (what’s in and out of scope), and measurable objectives, each with an owner.','You can accept its drafts or change them. Agreeing them creates version 1.0 of the room charter.','People and agents in the room work to the charter. At the end, the session is checked against its objectives.']},
+ {n:'Configure room', who:'Mission Lead · Jan D.', title:'Configure the room', agent:'Room Manager',
+  chat:[['ai','Welcome to the FP&A Core Room setup. I can set up the people and agents in the room, bind data sources, and decide what appears on the dashboard.','Room Manager']],
+  pills:[
+    {l:'Invite Sarah K as Data Analyst', r:'Sarah K is invited as Data Analyst, with prompt access and no approval rights.', a:'sarah'},
+    {l:'Add the Salesforce Q3 feed, hidden', r:'Connected Salesforce Q3 Opportunities under Inputs & Data. It’s hidden by default; switch it on in the Dashboard tab when operators need it.', a:'sf'},
+    {l:'Gate Risk escalations on approval', r:'Done. The Risk agent needs a Mission Lead’s approval before it warns any external supplier.', a:'gate'},
+    {l:'Open the room', r:'Room opened. The session is live.', a:'next', keep:true},
+  ],
+  auto:['Invite Sarah K as Data Analyst','Add the Salesforce Q3 feed, hidden','Gate Risk escalations on approval','Open the room'],
+  notes:['With the charter agreed, the Room Manager sets up the room in conversation: who is in it, which agents, which data sources, and what the dashboard shows.','Use the canvas tabs to check each part. The visibility switches decide what operators see on the dashboard.','Open the room to start the session.']},
+ {n:'Run session', who:'Mission Lead · Jan D.', title:'Run the session', agent:'Room Manager', ledger:true,
+  chat:[['ai','Session opened. Jan D. and Sarah K are in the room with the Logistics, Forecasting and Risk agents.','Room Manager']],
+  pills:[
+    {l:'@Forecasting build the EMEA margin cascade', me:'Team, Q3 margins are looking soft in EMEA. @Forecasting, build the margin vs target cascade for the region.', r:'Visualising the Q3 EMEA cascade on the canvas. Actuals fell $200k short of the $2M target, mainly because of expedited logistics costs.', from:['agent','Forecasting · Public'], a:'cascade'},
+    {l:'Explain the $200k shortfall', when:()=>S.cascade, r:'Expedited freight added $310k in Q3 after the port delays. Price increases recovered $110k, which leaves the $200k gap.', from:['agent','Forecasting · Public']},
+    {l:'Switch to Live (A/V)', when:()=>S.ledger!=='live', r:'Live mode on. Cameras and transcription are active, and transcripts go into the ledger.', a:'live'},
+    {l:'Ask @Risk privately (p)', r:'', a:'next', keep:true, silent:true},
+  ],
+  auto:['@Forecasting build the EMEA margin cascade','Explain the $200k shortfall','Switch to Live (A/V)','Ask @Risk privately (p)'],
+  notes:['The ledger is the room’s shared record. Humans and agents post to it, in text or live with audio and video.','The canvas starts on the Dashboard Directory: every deliverable, widget, data feed and tool in the session.','Ask an agent with @name. Its output lands on the canvas, and the breadcrumb tracks where you are.','The agent ring in the roster shows status: computing, idle or blocked. Click an agent to inspect it.']},
+ {n:'Private sandbox', who:'Mission Lead · Jan D.', title:'Work privately, then share', agent:'Room Manager', ledger:true,
+  chat:[['p me','@Risk calculate our tier 1 supplier exposure if the logistics strike continues.','Jan D. · (p)'],
+        ['p','I generated a ghost widget modelling the exposure. Tier 1 risk hits the 85% critical threshold by week 3 of a strike.','Risk · Private']],
+  pills:[
+    {l:'Explain the 85% threshold', r:'At 85%, most tier 1 suppliers would miss their delivery windows. Above that, the margin cascade needs a new scenario.', from:['p','Risk · Private']},
+    {l:'Approve supplier escalation', when:()=>!S.approved, r:'Approved by Jan D. The Risk agent is sending the external supplier warning.', a:'approve'},
+    {l:'Promote to public', when:()=>!S.promoted, r:'Supplier Exposure Model is now shared with the room. Everyone on the ledger can see it.', a:'promote'},
+    {l:'Review the session', r:'', a:'next', keep:true, silent:true},
+  ],
+  auto:['Explain the 85% threshold','Approve supplier escalation','Promote to public','Review the session'],
+  notes:['(p) messages and ghost widgets are private sandboxes. Only you and the agent can see them.','The Risk agent is blocked: it needs a human approval before contacting external suppliers.','Promote to Public moves a ghost widget into the shared context. Sandboxes that are never promoted are not memorialized.']},
+ {n:'Monitor', who:'Room Admin', title:'Monitor the session', agent:'Room Monitor', t:true,
+  chat:[['ai','Session running for 1h 24m: 22 prompts and 65,750 tokens so far. One deliverable is ready for review.','Room Monitor']],
+  pills:[
+    {l:'Submit Regional Action Plan', when:()=>!S.submitted, r:'Submitted. It’s in Jan D.’s approval queue.', a:'submit'},
+    {l:'Which agent is costing most?', r:'Forecasting: 45,200 tokens, 69% of the session. Most of it came from rebuilding the cascade after the logistics update.', from:['ai','Room Monitor']},
+    {l:'Finish the Q3 summary', when:()=>!S.q3, r:'Q3 Executive Summary is drafted, with the cascade and exposure findings. Ready for review.', from:['agent','Forecasting · Public'], a:'q3'},
+    {l:'Prepare to memorialize', r:'', a:'next', keep:true, silent:true},
+  ],
+  auto:['Submit Regional Action Plan','Which agent is costing most?','Finish the Q3 summary','Prepare to memorialize'],
+  notes:['Monitoring tracks progress against the charter’s objectives.','It also shows who contributed what, where each deliverable stands, and what each agent cost.','Every agent action is traced, so the session can be audited afterwards.','Submit sends a deliverable to its approver.']},
+ {n:'Memorialize', who:'Mission Lead · Jan D.', title:'Memorialize and close', agent:'Room Manager',
+  chat:[['ai','Here’s what will be committed to corporate memory. Private sandboxes that weren’t promoted are discarded.','Room Manager']],
+  pills:[
+    {l:'Promote the exposure model first', when:()=>!S.promoted && !S.closed, r:'Supplier Exposure Model promoted. It’s now in the manifest to commit.', a:'promote'},
+    {l:'Memorialize & close', when:()=>!S.closed, r:()=>`Committed ${manifest().filter(m=>m.keep).length} artifacts to corporate memory. The room is closed.`, a:'close'},
+    {l:'Start a follow-up room', when:()=>S.closed, r:'Drafted “FP&A Core Room · Q4 prep” with the same roster and agents. The committed artifacts are linked as inputs.'},
+  ],
+  auto:['Memorialize & close'],
+  notes:['The session is checked against the charter: each objective is shown as met or not met.','Memorialize commits the final artifacts to persistent corporate memory and closes the workspace.','Promoted widgets and finished deliverables are kept. Ghost widgets that were never promoted are discarded.','The manifest shows the decision for each artifact before you commit.']},
+];
+
+/* make jumps consistent */
+function ensure(i){
+  if (i>=1){ S.ch=4; }
+  if (i>=2){ S.sarah=true; S.sf=true; S.gate=true; }
+  if (i>=3){ S.cascade=true; S.ghost=true; }
+}
+
+/* ================= header / workflow ================= */
+function badge(i){
+  const vis = directory().reduce((n,g)=>n+g.items.filter(x=>x.visible).length,0);
+  return [
+    S.ch===4?'charter v1.0':`v0.${S.ch} draft`,
+    `${S.sarah?2:1} people · ${AGENTS.length} agents`,
+    S.closed?'closed':`${vis} on dashboard`,
+    S.ghost?(S.promoted?'promoted':'1 ghost widget'):'private (p)',
+    `${objectives().filter(o=>o.met).length}/3 objectives met`,
+    S.closed?'committed':`${manifest().filter(m=>m.keep).length} to commit`,
+  ][i];
+}
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = `<h1 class="ttl">Subject Room: <span>FP&amp;A Core Room</span></h1><div class="wf-steps">`+
+    STEPS.map((x,i)=>`${i?'<span class="wf-line"></span>':''}<button class="wf-step ${i===cur?'on':''} ${x.t?'t':''}" data-wf="${i}"><span class="wf-n">${i<maxReached&&i!==cur?'✓':i+1}</span><span class="wf-t">${x.n}<small>${badge(i)}</small></span></button>`).join('')+
+    `</div><div class="sb">${(cur===2||cur===3)&&!S.closed&&!AP.on?`<span class="clock">◷ 01:24:36</span><button class="btn pri" data-wf="5">Memorialize</button>`:''}<button class="btn play" data-play>${AP.on?(AP.paused?'▶ Resume':'⏸ Pause'):'▶ Play walkthrough'}</button><button class="btn ${S.drawer==='step'?'pri':''}" data-insp>ⓘ Step description</button></div>`;
+}
+
+/* ================= chat column ================= */
+function renderChat(){
+  const st=STEPS[cur];
+  const h=document.getElementById('chatH'), top=document.getElementById('chatTop');
+  if (st.ledger){
+    h.innerHTML=`<span class="dot"></span>ROOM LEDGER<div class="seg"><button class="${S.ledger==='text'?'on':''}" data-ledger="text">Text</button><button class="${S.ledger==='live'?'on':''}" data-ledger="live">Live A/V</button></div>`;
+    const people=HUMANS.filter(p=>p.id==='jan'||S.sarah);
+    top.innerHTML=`<div class="roster"><span class="lbl">ROSTER</span>${people.map(p=>`<span class="hum" style="border-color:${p.c};color:${p.c}" title="${p.n} · ${p.r}">${initials(p.n)}</span>`).join('')}<span class="rsep"></span>
+      ${AGENTS.map(a=>{const s=agentState(a);return `<button class="ag ${s} ${S.drawer==='agent:'+a.id?'sel':''}" data-agent="${a.id}" title="${a.n} (${s})">${s==='blocked'?'🔒':a.n[0]}</button>`}).join('')}</div>`+
+      (S.ledger==='live'?`<div class="av">${people.map((p,i)=>`<div class="avt ${i===0?'on':''}">${initials(p.n)}<span class="nm">${i===0?'🎙 ':''}${p.n}</span>${i===0?'<span class="lv">LIVE</span>':''}</div>`).join('')}</div>`:'');
+  } else {
+    h.innerHTML=`<span class="dot"></span>${st.agent.toUpperCase()} AGENT`;
+    top.innerHTML='';
+  }
+  document.getElementById('chatPh').textContent = st.ledger ? (S.ledger==='live'?'Microphone active. Type to instruct…':'Message the room…') : `Instruct the ${st.agent}…`;
+  let msgs = st.chat.concat(extras[cur]);
+  if (st.ledger && S.ledger==='live' && cur===2) msgs = msgs.concat([['tr','“Okay, I see the margin cascade… @Risk, what’s our tier 1 supplier exposure if this port strike runs another week?”','🎙 Jan D. · Live transcript']]);
+  document.getElementById('msgs').innerHTML = msgs.map(([w,t,who])=>`<div class="msg ${w}" data-who="${who||''}">${t}</div>`).join('');
+  const pills = st.pills.filter(p=>(!p.when||p.when()) && (p.keep||!S.used[p.l]));
+  document.getElementById('sugs').innerHTML = pills.map(p=>`<button class="sug" data-pill="${p.l}">✦ ${p.l}</button>`).join('');
+  const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight;
+}
+
+/* ================= canvases ================= */
+function charterView(){
+  const c=S.ch, nw=k=>S.newItem===k?'new':'';
+  const stages=['Purpose','Focus','Objectives','Agreed'];
+  const sec=(n,t,done,body,k)=>`<div class="ch-sec ${nw(k)}"><h4><span class="num">${n}</span>${t}${done?chip(c===4?'bound':'offered',c===4?'Agreed':'Drafted'):chip('na','Waiting')}</h4><div class="ch-b">${body}</div></div>`;
+  const objs=objectives();
+  return `<div class="panel">
+    <div class="fhead"><div><div class="crumb2">Room charter</div><h2>Purpose, focus &amp; objectives</h2><p>Agreed before the room is set up. Everyone in the room, people and agents, works to it, and the session is checked against it at the end.</p></div>
+      ${c===4?chip('bound','v1.0 Agreed'):chip('gap',`v0.${c} Draft`)}</div>
+    <div style="padding:0 20px 4px" class="vline">${stages.map((s,i)=>`${i?'<span class="vbar"></span>':''}<span class="vstep ${c>i?'done':''} ${c===i?'cur':''}"><i></i>${s}</span>`).join('')}</div>
+    <div class="fbody">
+      ${sec(1,'Purpose · why this room exists',c>=1,c>=1?`<div class="purpose">${PURPOSE}</div>`:'<div class="wait">The Room Manager will ask why this room exists.</div>','ch1')}
+      ${sec(2,'Focus · what’s in and out of scope',c>=2,c>=2?`<div class="scope"><div><div class="dl">In scope</div><div class="tags">${IN_SCOPE.map(x=>`<span class="tag in">${x}</span>`).join('')}</div></div><div><div class="dl">Out of scope</div><div class="tags">${OUT_SCOPE.map(x=>`<span class="tag out">${x}</span>`).join('')}</div></div></div>`:'<div class="wait">Next, the Room Manager will ask what to include and leave out.</div>','ch2')}
+      ${sec(3,'Objectives · how we’ll know it worked',c>=3,c>=3?`<table><thead><tr><th style="width:36px"></th><th>Objective</th><th>Owner</th><th>Measure of success</th></tr></thead><tbody>
+        ${objs.map((o,i)=>`<tr class="${o.changed&&S.newItem==='tight'?'changed':''}"><td><span class="obj-n">${i+1}</span></td><td class="nm">${o.n}${o.changed?' <span class="badge-new">EDITED</span>':''}</td><td>${o.o}</td><td style="color:#b8c6db">${o.m}</td></tr>`).join('')}</tbody></table>`:'<div class="wait">Then it will propose measurable objectives, each with an owner.</div>','ch3')}
+      <div class="ch-sec ${nw('ch4')}"><h4><span class="num">✓</span>Agreement</h4><div class="ch-b" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+        <span class="who"><span class="hum" style="border-color:#8b8cf6;color:#8b8cf6">JD</span>Jan D. · Mission Lead</span>${c===4?chip('bound','Agreed'):chip('na','Pending')}
+        <span class="who" style="margin-left:12px"><span class="ag" style="color:var(--teal);border-color:var(--teal)">✦</span>Room Manager</span>${c>=1?chip('offered','Drafted'):chip('na','Waiting')}
+        ${c===3?'<button class="btn pri" style="margin-left:auto" data-pill="Agree the charter">Agree charter</button>':''}
+        ${c===4?'<button class="btn pri" style="margin-left:auto" data-pill="Set up the room">Set up the room →</button>':''}</div></div>
+    </div></div>`;
+}
+function objectivesPanel(title){
+  const o=objectives();
+  return `<div class="panel"><div class="panel-h"><h3>${title}</h3>${chip(o.every(x=>x.met)?'bound':'gap',`${o.filter(x=>x.met).length} / ${o.length} met`)}</div>
+    <table><tbody>${o.map((x,i)=>`<tr><td style="width:36px"><span class="obj-n">${i+1}</span></td><td class="nm">${x.n}<small>${x.m} · owner: ${x.o}</small></td><td style="width:110px">${x.met?chip('bound','Met'):chip(S.closed?'drift':'gap',S.closed?'Not met':'In progress')}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function configView(){
+  const tab=(k,l,n)=>`<button class="${S.cfgView===k?'on':''}" data-cfg="${k}">${l} <span class="ct">${n}</span></button>`;
+  const people=HUMANS.filter(p=>p.id==='jan'||S.sarah);
+  let body='';
+  if (S.cfgView==='users'){
+    body=`<div class="grid2">${people.map(p=>`<div class="card ${p.id==='sarah'&&S.newItem==='sarah'?'new':''}" style="border-top-color:${p.c}">
+      <div class="hd"><span class="hum" style="border-color:${p.c};color:${p.c};width:38px;height:38px">${initials(p.n)}</span><div><div class="nm">${p.n}</div><div class="rl">ROLE: ${p.r.toUpperCase()}</div></div></div>
+      <div class="ft"><span class="dl">Approver</span>${p.approver?chip('bound','Active'):chip('na','None')}<span class="dl" style="margin-left:auto">Prompt access</span>${chip('bound','Yes')}</div></div>`).join('')}
+      ${S.sarah?'':`<button class="dash" data-pill="Invite Sarah K as Data Analyst" style="min-height:120px">+ INVITE USER</button>`}</div>`;
+  } else if (S.cfgView==='agents'){
+    body=`<div class="grid2">${AGENTS.map(a=>`<div class="card ${a.id==='risk'&&S.newItem==='gate'?'new':''}">
+      <div class="hd"><span class="ag ${agentState(a)}" style="width:38px;height:38px">${a.n[0]}</span><div><div class="nm">${a.n} Agent</div><div class="rl">MODEL: ${a.model}</div></div></div>
+      <div class="ds">${a.desc}</div>
+      ${a.id==='risk'&&S.gate?'<div class="gate">🔒 Approval gate: escalations to external suppliers need a Mission Lead’s approval.</div>':''}
+      <div class="ft"><span class="dl">Bound skills</span>${a.skills.map(s=>`<span class="skill">${s}</span>`).join('')}</div></div>`).join('')}
+      <button class="dash" style="min-height:120px">+ INVITE AGENT</button></div>`;
+  } else {
+    body=directory().map(g=>`<div class="cfg-g"><h4>${g.t}<button class="btn sm">+ Add item</button></h4>
+      ${g.items.length?g.items.map(it=>`<div class="cfg-r ${S.newItem===it.id?'new':''}"><div><b>${it.title}${it.ghost?' <span class="badge-ghost">GHOST</span>':''}${S.newItem===it.id?' <span class="badge-new">NEW</span>':''}</b><small>${it.type} · owner: ${it.owner}</small></div>
+        ${(it.id in S.vis)?`<button class="tg ${it.visible?'on':''}" data-vis="${it.id}"><i></i>${it.visible?'Visible':'Hidden'}</button>`:`<span class="tg on"><i></i>Visible</span>`}</div>`).join(''):`<div class="cfg-r"><small>Created during the session by agents.</small></div>`}</div>`).join('');
+  }
+  return `<div class="panel">
+    <div class="fhead"><div><div class="crumb2">Room setup</div><h2>Room configuration</h2><p>Set up who is in the room, which agents work in it, and what operators see on the dashboard.</p></div>
+      <div style="display:flex;gap:8px"><button class="btn-ai">✦ Recommend with AI</button><button class="btn pri" data-pill="Open the room">Open room →</button></div></div>
+    <div class="ftabs">${tab('users','User roster',people.length)}${tab('agents','Agent roster',AGENTS.length)}${tab('dashboard','Dashboard',directory().reduce((n,g)=>n+g.items.length,0))}</div>
+    <div class="fbody">${body}</div></div>`;
+}
+
+function lineChart(){
+  const d=[['Q1',4000,4400],['Q2',3000,3200],['Q3',2000,1800],['Q4',2780,2900]];
+  const W=640,H=220,pl=44,pr=16,pt=12,pb=28,max=5000;
+  const x=i=>pl+i*(W-pl-pr)/(d.length-1), y=v=>pt+(H-pt-pb)*(1-v/max);
+  const path=k=>d.map((r,i)=>`${i?'L':'M'}${x(i)},${y(r[k])}`).join('');
+  const grid=[0,1000,2000,3000,4000,5000].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#253350" stroke-dasharray="3 3"/><text x="${pl-8}" y="${y(v)+4}" fill="#64748b" font-size="10" text-anchor="end">${v/1000}k</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}
+    ${d.map((r,i)=>`<text x="${x(i)}" y="${H-8}" fill="#64748b" font-size="10.5" text-anchor="middle">${r[0]}</text>`).join('')}
+    <path d="${path(1)}" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="5 5"/>
+    <path d="${path(2)}" fill="none" stroke="#22c7dc" stroke-width="3"/>
+    ${d.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r[2])}" r="4.5" fill="#0c1426" stroke="${r[2]<r[1]?'#f2506b':'#22c7dc'}" stroke-width="2"><title>${r[0]}: actual ${r[2]} · target ${r[1]}</title></circle>`).join('')}</svg>`;
+}
+function barChart(){
+  const d=[['Tier 1',85],['Tier 2',45],['Tier 3',20]];
+  const col=v=>v>80?'var(--s-drift)':v>40?'var(--s-gap)':'var(--s-bound)';
+  return `<div style="display:flex;flex-direction:column;gap:12px;position:relative;z-index:1">${d.map(([c,v])=>`<div style="display:grid;grid-template-columns:60px 1fr 44px;gap:12px;align-items:center">
+    <span class="mono" style="color:var(--muted)">${c}</span><div style="background:#0d1629;border-radius:4px;height:20px"><div style="width:${v}%;height:100%;border-radius:0 4px 4px 0;background:${col(v)}"></div></div><span class="mono" style="text-align:right;color:${col(v)}">${v}%</span></div>`).join('')}
+    <div class="mono" style="color:var(--muted)">Critical threshold 85% · week 3 of strike</div></div>`;
+}
+function cascadeWidget(){
+  return `<div class="wg"><div class="panel-h"><h3><span class="dot"></span>EMEA Q3 Margin Cascade</h3><div style="display:flex;gap:8px;align-items:center"><div class="legend"><span><i style="background:#64748b"></i>Target</span><span><i style="background:#22c7dc"></i>Actual</span></div>${chip('live','Live · Public')}</div></div>
+    <div class="wg-b">${lineChart()}</div></div>`;
+}
+function ghostWidget(){
+  const p=S.promoted;
+  return `<div class="wg ${p?'promoted':'ghost'}"><div class="panel-h"><h3>${p?'🔓':'🔒'} Supplier Exposure Model ${p?'':'<span class="badge-ghost">GHOST · (p)</span>'}</h3>
+    ${p?chip('offered','Shared context'):`<button class="btn warn sm" data-pill="Promote to public">Promote to public</button>`}</div>
+    <div class="wg-b">${p?'':'<div class="wm">GHOST</div>'}${barChart()}</div></div>`;
+}
+function execView(){
+  const dir=directory();
+  const crumbs=`<div class="crumb2"><button class="${S.canvas==='directory'?'on':''}" data-home>▦ Dashboard Directory</button>${S.cat?` › ${S.cat}`:''}${S.art?` › <b>${S.art}</b>`:''}</div>`;
+  const stages=['Ingest','Check','Analysis','Save'], at=S.closed?4:2;
+  const pipe=S.canvas==='workspace'?`<div class="vline">${stages.map((s,i)=>`${i?'<span class="vbar"></span>':''}<span class="vstep ${i<at?'done':''} ${i===at?'cur':''}"><i></i>${s}</span>`).join('')}</div>`:'';
+  let body;
+  if (S.canvas==='directory'){
+    body=`<div class="panel"><div class="fhead"><div><div class="crumb2">Session canvas</div><h2>Room artifacts &amp; objects</h2><p>Every deliverable, widget, data feed and tool in this session. Open one to work on it.</p></div><button class="btn-ai">✦ Recommend with AI</button></div>
+      <div class="fbody"><div class="dir">${dir.map(g=>{const v=g.items.filter(i=>i.visible);return `<div class="dir-g"><h4>${g.t}<span class="n">${v.length}</span></h4><div class="list">
+        ${v.length?v.map(it=>`<button class="fc ${it.live?'live':''} ${it.ghost?'ghost':''} ${S.newItem===it.id?'new':''}" data-art="${it.id}" data-cat="${g.t}">
+          <div class="row1"><span class="nm" style="${it.ghost?'color:var(--s-gap)':''}">${it.title}</span>${chip(it.ghost?'gap':it.live?'live':/Ready|Active|Synced|Submitted/.test(it.status)?'bound':'na',it.status)}</div>
+          <div class="meta"><span>${it.type}</span><span>owner: ${it.owner}${it.live||it.ghost?' · open ↗':''}</span></div></button>`).join(''):`<div class="empty">${g.t==='Charts & Analytics'?'Agents publish charts here during the session.':'No visible items configured for this section.'}</div>`}
+        </div></div>`}).join('')}</div></div></div>`;
+  } else {
+    const showC=S.cascade&&(!S.art||S.art==='EMEA Q3 Margin Cascade'), showG=S.ghost&&(!S.art||S.art==='Supplier Exposure Model');
+    body = (showC?cascadeWidget():'')+(showG?ghostWidget():'')+
+      (!showC&&!showG?`<div class="panel" style="padding:48px 20px;text-align:center;color:var(--muted)"><div style="font-size:30px;margin-bottom:10px">▤</div><h3 style="color:var(--text);margin-bottom:6px">${S.art}</h3>Preview rendering available for this artifact type.</div>`:'');
+  }
+  return `<div class="purp-strip"><b>CHARTER v1.0 · PURPOSE</b>${PURPOSE}<button class="lnk" style="margin-left:auto;color:var(--teal);font-size:12px" data-wf="0">View charter</button></div><div class="toolbar">${crumbs}${pipe}</div>${body}`;
+}
+
+function monitorView(){
+  const people=HUMANS.filter(p=>p.id==='jan'||S.sarah);
+  const stats={jan:[14,S.approved?4:3],sarah:[8,0]};
+  const total=AGENTS.reduce((n,a)=>n+a.tx,0);
+  const del=[
+    {n:'Q3 Executive Summary', s:S.q3?['bound','Ready for review']:['gap','Drafting · Forecasting'], btn:S.q3},
+    {n:'Regional Action Plan', s:S.submitted?['offered','Submitted · awaiting Jan D.']:['bound','Ready for review'], btn:!S.submitted, pill:'Submit Regional Action Plan'},
+  ];
+  return `<div class="kpis">
+      <div class="kpi"><div class="v" style="color:var(--teal);font-family:var(--mono);font-weight:500">01:24:36</div><div class="l">Session duration</div></div>
+      <div class="kpi"><div class="v">22</div><div class="l">Prompts from people</div></div>
+      <div class="kpi"><div class="v" style="color:var(--s-bound)">${S.approved?4:3}</div><div class="l">Approvals given</div></div>
+      <div class="kpi"><div class="v">${total.toLocaleString()}</div><div class="l">Tokens this session</div></div></div>
+    ${objectivesPanel('Charter objectives · progress')}
+    <div class="two">
+      <div class="panel"><div class="panel-h"><h3>Human roster &amp; contributions</h3></div><table><thead><tr><th>Person</th><th style="text-align:right">Prompts</th><th style="text-align:right">Approvals</th></tr></thead><tbody>
+        ${people.map(p=>`<tr><td><div class="who"><span class="hum" style="border-color:${p.c};color:${p.c}">${initials(p.n)}</span><div><b>${p.n}</b><div class="mono" style="color:var(--muted);font-size:10px">${p.r.toUpperCase()}</div></div></div></td><td class="num">${stats[p.id][0]}</td><td class="num" style="color:${stats[p.id][1]?'var(--s-bound)':'var(--dim)'}">${stats[p.id][1]}</td></tr>`).join('')}</tbody></table></div>
+      <div class="panel"><div class="panel-h"><h3>Deliverables status</h3></div><table><tbody>
+        ${del.map(d=>`<tr><td class="nm">${d.n}<div style="margin-top:4px">${chip(d.s[0],d.s[1])}</div></td><td style="text-align:right">${d.btn&&d.pill?`<button class="btn pri sm" data-pill="${d.pill}">➤ Submit</button>`:d.btn?'<button class="btn sm">➤ Submit</button>':''}</td></tr>`).join('')}</tbody></table></div>
+    </div>
+    <div class="two" style="grid-template-columns:1.4fr 1fr">
+      <div class="panel"><div class="panel-h"><h3>System object activity</h3></div><div class="act">
+        <div><b style="color:#f7708f">450</b><span>Calls rendered</span><small>Inputs &amp; Data</small></div>
+        <div><b style="color:var(--teal)">12</b><span>Views rendered</span><small>Charts &amp; Analytics</small></div>
+        <div><b style="color:var(--s-offered)">14</b><span>Times invoked</span><small>Tools &amp; Functions</small></div></div></div>
+      <div class="panel"><div class="panel-h"><h3>Tech layer / models</h3></div><table><tbody>
+        ${AGENTS.map(a=>`<tr><td class="nm"><span style="display:inline-flex;gap:8px;align-items:center"><span class="ag ${agentState(a)}" style="width:20px;height:20px;font-size:9px;border-width:1.5px">${a.n[0]}</span>${a.n} Agent</span><small>model: ${a.model}</small></td><td class="num">${a.tx.toLocaleString()} tx</td></tr>`).join('')}</tbody></table>
+        <div class="total"><span>TOTAL SESSION TOKENS</span><b>${total.toLocaleString()}</b></div></div>
+    </div>`;
+}
+
+function manifest(){
+  return [
+    {n:'Q3 Executive Summary', t:'Deliverable', o:'Forecasting', keep:true, why:S.q3?'Final draft':'Draft, carried over as work in progress'},
+    {n:'Regional Action Plan', t:'Deliverable', o:'Jan D.', keep:true, why:S.submitted?'Submitted for approval':'Ready for review'},
+    {n:'EMEA Q3 Margin Cascade', t:'Live widget', o:'Forecasting', keep:S.cascade, why:S.cascade?'Public':'Not created'},
+    {n:'Supplier Exposure Model', t:S.promoted?'Live widget':'Ghost widget', o:'Risk', keep:S.promoted, why:S.promoted?'Promoted to public':'Private (p), never promoted'},
+    {n:'Room ledger & transcript', t:'Conversation', o:'Room', keep:true, why:'Full audit trail, including agent traces'},
+  ];
+}
+function memorialView(){
+  const m=manifest(), k=m.filter(x=>x.keep).length;
+  const om=objectives().filter(o=>o.met).length;
+  return `${S.closed?`<div class="banner"><span class="ic">✓</span><div><b>Session memorialized</b>${om} of 3 charter objectives met. ${k} artifacts committed to corporate memory. The FP&amp;A Core Room is closed.</div></div>`:''}
+    ${objectivesPanel('Outcome against the charter')}
+    <div class="panel"><div class="fhead"><div><div class="crumb2">End of session</div><h2>Memorialize the session</h2><p>Commit the session’s final artifacts to persistent corporate memory, then close the workspace.</p></div>
+      ${S.closed?chip('bound','Committed'):`<button class="btn pri" data-pill="Memorialize &amp; close">Memorialize &amp; close</button>`}</div>
+    <table><thead><tr><th>Artifact</th><th>Type</th><th>Owner</th><th>Reason</th><th style="width:130px">Decision</th></tr></thead><tbody>
+      ${m.map(x=>`<tr><td class="nm">${x.n}</td><td class="mono" style="color:var(--muted)">${x.t}</td><td>${x.o}</td><td style="color:#b8c6db">${x.why}</td><td>${x.keep?chip('bound',S.closed?'Committed':'Commit'):chip(x.t==='Ghost widget'?'drift':'na','Discard')}</td></tr>`).join('')}</tbody></table></div>
+    ${!S.promoted&&!S.closed?`<div class="note">The Supplier Exposure Model is still a private ghost widget, so it will be discarded. Promote it first if the room should keep it.</div>`:''}`;
+}
+
+/* ================= drawer ================= */
+function renderDrawer(){
+  const d=document.getElementById('drawer'); d.hidden=!S.drawer; document.body.classList.toggle('insp',!!S.drawer); if(!S.drawer) return;
+  if (S.drawer==='step'){
+    const st=STEPS[cur];
+    d.innerHTML=`<div class="dr-h"><h2>Step description</h2><button class="x" data-close>×</button></div>
+      <div class="dr-body"><div class="dl" style="color:${st.t?'#b3b4ff':'#7ee8f5'}">WORKFLOW ${cur+1} / ${STEPS.length} · ${st.who.toUpperCase()}</div>
+      <h3 style="font-size:18px;line-height:1.3">${st.title}</h3><ul class="ilist">${st.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div>
+      <div class="dr-foot"><button class="btn" data-step="-1">← Previous</button><button class="btn pri" data-step="1">Next →</button></div>`;
+  } else {
+    const a=AGENTS.find(x=>'agent:'+x.id===S.drawer), s=agentState(a);
+    d.innerHTML=`<div class="dr-h"><h2>Inspector</h2><button class="x" data-close>×</button></div>
+      <div class="dr-body"><div style="display:flex;gap:12px;align-items:center"><span class="ag ${s}" style="width:42px;height:42px;font-size:15px">${s==='blocked'?'🔒':a.n[0]}</span><div><b style="font-size:16px">${a.n} Agent</b><div class="mono" style="color:var(--muted);margin-top:2px">status: ${s} · ${a.model}</div></div></div>
+      <div class="note">${a.desc}</div><div class="dl">Available skills</div>${a.skills.map(k=>`<div class="sk"><span class="mono">${k}</span><span style="color:var(--dim)">›</span></div>`).join('')}
+      ${s==='blocked'?`<div class="gate"><b style="display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;margin-bottom:4px">🔒 APPROVAL REQUIRED</b>The agent needs a human approval to escalate an external supplier warning.</div>`:''}</div>
+      ${s==='blocked'?`<div class="dr-foot"><button class="btn ok" data-pill="Approve supplier escalation">Approve escalation</button></div>`:''}`;
+  }
+}
+
+/* ================= render / nav ================= */
+function render(){
+  const st=STEPS[cur];
+  document.getElementById('userName').textContent = st.t?'ggilbert':'Jan D.';
+  document.getElementById('userRole').textContent = st.t?'Room Admin':'Mission Lead';
+  document.querySelector('.avatar').textContent = st.t?'G':'J';
+  renderTabs();
+  document.getElementById('canvas').innerHTML = cur===0?charterView() : cur===1?configView() : cur<=3?execView() : cur===4?monitorView() : memorialView();
+  renderChat(); renderDrawer();
+}
+function go(i){
+  cur=Math.max(0,Math.min(STEPS.length-1,i)); maxReached=Math.max(maxReached,cur); ensure(cur);
+  S.newItem=null;
+  if (cur===2){ S.canvas=S.cascade?'workspace':'directory'; S.cat=S.cascade?'Charts & Analytics':null; S.art=null; }
+  if (cur===3){ S.canvas='workspace'; S.cat='Charts & Analytics'; S.art='Supplier Exposure Model'; }
+  if (S.drawer && S.drawer!=='step') S.drawer=null;
+  try{history.replaceState(null,'','#step-'+(cur+1));}catch(e){}
+  render();
+}
+
+function runPill(label){
+  let p=null, at=cur;
+  STEPS[cur].pills.forEach(q=>{ if(q.l===label) p=q; });
+  if (!p) STEPS.forEach((s,i)=>s.pills.forEach(q=>{ if(!p&&q.l===label){p=q;at=i;} }));
+  if (!p) return;
+  S.used[p.l]=true;
+  if (!p.silent){
+    const priv = p.from && p.from[0]==='p';
+    const me = priv ? 'Jan D. · (p)' : STEPS[cur].ledger ? 'Jan D. · Public' : (STEPS[cur].t?'ggilbert · Room Admin':'Jan D.');
+    extras[cur].push([priv?'p me':'me', p.me||p.l, me]);
+    const [w,who] = p.from || ['ai', STEPS[cur].agent];
+    extras[cur].push([w, typeof p.r==='function'?p.r():p.r, who]);
+  }
+  S.newItem=null;
+  switch(p.a){
+    case 'sarah': S.sarah=true; S.cfgView='users'; S.newItem='sarah'; break;
+    case 'sf': S.sf=true; S.vis.sf=false; S.cfgView='dashboard'; S.newItem='sf'; break;
+    case 'gate': S.gate=true; S.cfgView='agents'; S.newItem='gate'; break;
+    case 'cascade': S.cascade=true; S.canvas='workspace'; S.cat='Charts & Analytics'; S.art='EMEA Q3 Margin Cascade'; break;
+    case 'live': S.ledger='live'; break;
+    case 'approve': S.approved=true; break;
+    case 'promote': S.promoted=true; break;
+    case 'submit': S.submitted=true; break;
+    case 'q3': S.q3=true; break;
+    case 'close': S.closed=true; break;
+    case 'ch1': case 'ch2': case 'ch3': case 'ch4': S.ch=+p.a[2]; S.newItem=p.a; break;
+    case 'tight': S.tight=true; S.newItem='tight'; break;
+    case 'next': return go(cur+1);
+  }
+  render();
+}
+
+/* ================= autoplay ================= */
+const AP={on:false, paused:false, token:0, done:0, total:0, text:''};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function hold(ms,tok){ let t=0; while(t<ms){ if(AP.token!==tok) throw 'stop'; if(!AP.paused) t+=100; await sleep(100); } }
+function caption(k,t){ AP.text=[k,t]; renderCap(); }
+function renderCap(){
+  const c=document.getElementById('cap'); c.hidden=!AP.on; if(!AP.on) return;
+  const [k,t]=AP.text||['',''];
+  c.innerHTML=`<span class="k">${k}</span><span class="t">${t}</span><button class="btn sm" data-play>${AP.paused?'▶ Resume':'⏸ Pause'}</button><button class="btn sm" data-stop>■ Stop</button><span class="prog"><i style="width:${AP.total?Math.round(100*AP.done/AP.total):0}%"></i></span>`;
+}
+async function autoplay(){
+  const tok=++AP.token; AP.on=true; AP.paused=false;
+  AP.total=STEPS.reduce((n,s)=>n+1+s.auto.length,0); AP.done=0;
+  resetDemo(); S.drawer='step'; go(0);
+  try{
+    for(let i=0;i<STEPS.length;i++){
+      if (cur!==i) go(i);
+      S.drawer='step'; render();
+      caption(`STEP ${i+1} OF ${STEPS.length}`, `<b>${STEPS[i].n}.</b> ${STEPS[i].notes[0]}`);
+      await hold(4500,tok); AP.done++;
+      for(const l of STEPS[i].auto){
+        const b=[...document.querySelectorAll('#sugs .sug')].find(x=>x.dataset.pill===l);
+        if (!b){ AP.done++; continue; }
+        caption(`STEP ${i+1} OF ${STEPS.length}`, `Clicking the suggestion <b style="color:#ffd3a0">✦ ${l}</b>`);
+        b.classList.add('hl'); b.scrollIntoView({block:'nearest'});
+        await hold(1400,tok);
+        runPill(l); AP.done++; renderCap();
+        await hold(i===STEPS.length-1?1500:3200,tok);
       }
-    ];
+    }
+    caption('WALKTHROUGH COMPLETE', 'That’s one full session, from agreeing the purpose to memorializing the results. Click any step in the header to look around.');
+    await hold(6000,tok);
+    AP.on=false; render(); renderCap();
+  }catch(e){ /* stopped */ }
+}
+function stopPlay(){ AP.token++; AP.on=false; AP.paused=false; render(); renderCap(); }
 
-    const ToggleSwitch = ({ checked, onChange }) => (
-      <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-        <input type="checkbox" name="toggle" checked={checked} onChange={onChange} className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-600 transition-all z-10" />
-        <label className="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer transition-colors"></label>
-      </div>
-    );
-
-    // Global Avatar URLs
-    const avatarJan = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fit=facearea&facepad=2&w=256&h=256&q=80";
-    const avatarSarah = "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?fit=facearea&facepad=2&w=256&h=256&q=80";
-    const liveVideoJan = "https://images.unsplash.com/photo-1557862921-37829c790f19?fit=crop&w=600&h=400";
-    const liveVideoSarah = "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?fit=crop&w=600&h=400";
-
-    const SubjectRoomDashboard = () => {
-      const [isPromoted, setIsPromoted] = useState(false);
-      const [inputValue, setInputValue] = useState("");
-      
-      // Main app states
-      const [platformView, setPlatformView] = useState('execution'); // 'configuration', 'execution', 'monitoring'
-      const [sessionSchedule, setSessionSchedule] = useState('Ad-hoc');
-      
-      // Configuration states
-      const [configChatInput, setConfigChatInput] = useState("");
-      const [configCanvasView, setConfigCanvasView] = useState('dashboard'); // 'roster', 'users', or 'dashboard'
-      const [directoryConfig, setDirectoryConfig] = useState(initialDirectoryData);
-      
-      // Execution states
-      const [chatMode, setChatMode] = useState('normal'); // 'normal' or 'narrow'
-      const [ledgerMode, setLedgerMode] = useState('text'); // 'text' or 'live'
-      const [canvasView, setCanvasView] = useState('directory'); // 'directory' or 'workspace'
-      const [selectedAgent, setSelectedAgent] = useState(null);
-      const [showInfoModal, setShowInfoModal] = useState(false);
-      
-      // Breadcrumb State
-      const [activeCategory, setActiveCategory] = useState(null);
-      const [activeArtifact, setActiveArtifact] = useState(null);
-
-      const activeAgent = agentsList.find(a => a.id === selectedAgent);
-
-      const handleArtifactClick = (categoryTitle, item) => {
-        setActiveCategory(categoryTitle);
-        setActiveArtifact(item.title);
-        setCanvasView('workspace');
-      };
-
-      const handleBreadcrumbHome = () => {
-        setCanvasView('directory');
-        setActiveCategory(null);
-        setActiveArtifact(null);
-      };
-
-      const toggleConfigItemVisibility = (catIdx, itemIdx) => {
-        const newConfig = [...directoryConfig];
-        newConfig[catIdx].items[itemIdx].visible = !newConfig[catIdx].items[itemIdx].visible;
-        setDirectoryConfig(newConfig);
-      };
-
-      return (
-        <div className="h-screen w-full flex flex-col bg-slate-950 overflow-hidden text-slate-300 font-sans">
-          
-          {/* INFO MODAL OVERLAY */}
-          {showInfoModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center animate-[fadeIn_0.2s_ease-out]">
-              <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
-                <button onClick={() => setShowInfoModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
-                  <X className="w-5 h-5"/>
-                </button>
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5 text-indigo-400"/> Room Functionality Guide
-                </h2>
-                <div className="space-y-4 text-sm text-slate-300 leading-relaxed">
-                  <p><strong>Subject Rooms</strong> are ephemeral, synchronous workspaces designed for AI-human collaboration on specific operational missions.</p>
-                  <ul className="list-disc pl-5 space-y-2 text-slate-400">
-                    <li><strong className="text-slate-200">Configuration:</strong> Define the data bindings, UI templates, user rosters, and specialized AI agents required for this room's mission before execution. Manage dashboard items via the Room Manager Agent.</li>
-                    <li><strong className="text-slate-200">Execution:</strong> The live operational state where humans and embedded agents collaborate. You can toggle between Text and Live (A/V) ledger modes, and use the public ledger and private `(p)` sandboxes.</li>
-                    <li><strong className="text-slate-200">Monitoring:</strong> Review agent telemetry, audit "Glass Box" execution traces, and manage human-in-the-loop approvals.</li>
-                  </ul>
-                  <p className="pt-2 border-t border-slate-800 text-xs text-slate-500">
-                    At the end of a session, click "Memorialize" to commit finalized artifacts to persistent corporate memory and close the workspace.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 1. PLATFORM HEADER */}
-          <header className="h-12 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-20 shrink-0">
-            <div className="flex items-center gap-6">
-              <div className="font-black text-white text-lg tracking-tighter flex items-center gap-2">
-                <span className="w-5 h-5 bg-indigo-500 rounded flex items-center justify-center text-white text-xs">P</span>
-                PaaS
-              </div>
-              <div className="flex items-center gap-2">
-                <nav className="flex space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                  {['configuration', 'execution', 'monitoring'].map(view => (
-                    <button 
-                      key={view}
-                      onClick={() => setPlatformView(view)}
-                      className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${platformView === view ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
-                    >
-                      {view}
-                    </button>
-                  ))}
-                </nav>
-                <button onClick={() => setShowInfoModal(true)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="Platform Information">
-                  <Info className="w-4 h-4"/>
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-slate-500 font-mono">SYS_OK</div>
-              <div className="w-6 h-6 rounded-full bg-slate-700 border border-slate-600 overflow-hidden">
-                <img src={avatarJan} className="w-full h-full object-cover"/>
-              </div>
-            </div>
-          </header>
-
-          {/* 2. ROOM HEADER */}
-          <div className="h-14 glass-panel border-b border-slate-700/50 flex items-center justify-between px-6 z-10 shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <h1 className="text-sm font-semibold tracking-wide text-slate-100 flex items-center gap-2">
-                  FP&A Core Room
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 border border-slate-700">Mission</span>
-                </h1>
-                <span className="text-[10px] text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {platformView === 'configuration' ? 'Setup Mode' : platformView === 'monitoring' ? 'Telemetry Mode' : 'Session Active'}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {platformView === 'execution' && (
-                <>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-slate-800/50 border border-slate-700/50 text-slate-400 text-xs font-medium mr-2">
-                    <Clock className="w-3.5 h-3.5" /> 
-                    {sessionSchedule} Session
-                  </div>
-                  <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-colors">
-                    <Pause className="w-3.5 h-3.5" />
-                    Pause Session
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors shadow-[0_0_15px_rgba(79,70,229,0.4)]">
-                    <Save className="w-3.5 h-3.5" />
-                    Memorialize
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* MAIN CONTENT AREA */}
-          <main className="flex-1 flex overflow-hidden relative">
-            
-            {/* -------------------------------------------------------------
-               CONFIGURATION VIEW
-            ------------------------------------------------------------- */}
-            {platformView === 'configuration' ? (
-              <>
-                {/* CONFIG: LEFT COLUMN - Room Management Chat */}
-                <div className={`glass-panel border-t-0 border-b-0 border-l-0 flex flex-col z-10 relative shadow-2xl transition-all duration-300 ease-in-out w-1/3 shrink-0`}>
-                  
-                  {/* Chat Header */}
-                  <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-semibold text-slate-200 uppercase tracking-widest">Room Manager Agent</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Chat Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-5">
-                    
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center">
-                          <Bot className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <span className="text-[11px] text-emerald-400">Room Manager</span>
-                      </div>
-                      <div className="bg-emerald-950/10 p-2.5 rounded-lg rounded-tl-none border border-emerald-900/50 text-xs text-slate-300 leading-relaxed">
-                        Welcome to the FP&A Core Room configuration setup. I can help you configure dashboard elements, setup the human user roster, bind external data sources, or invite specialized agents.
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 pt-2">
-                      <div className="flex items-center gap-2">
-                        <img src={avatarJan} className="w-5 h-5 rounded-full object-cover"/>
-                        <span className="text-[11px] text-slate-400">Jan D.</span>
-                      </div>
-                      <div className="bg-slate-800/50 p-2.5 rounded-lg rounded-tl-none border border-slate-700/50 text-xs text-slate-200 leading-relaxed">
-                        Let's add the Salesforce Q3 Opportunities feed to the dashboard under Inputs & Data, but set it to hidden by default.
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 pt-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center">
-                          <Bot className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <span className="text-[11px] text-emerald-400">Room Manager</span>
-                      </div>
-                      <div className="bg-emerald-950/10 p-2.5 rounded-lg rounded-tl-none border border-emerald-900/50 text-xs text-slate-300 leading-relaxed">
-                        I've configured the <strong>Salesforce Q3 Opportunities</strong> connector. You will now see it under <em>Inputs & Data</em> in the Dashboard Config view on the right. You can toggle its default visibility there.
-                      </div>
-                    </div>
-
-                  </div>
-                  
-                  {/* Input Area */}
-                  <div className="p-3 bg-slate-900/80 border-t border-slate-800">
-                    <div className="relative flex items-center">
-                      <input 
-                        type="text" 
-                        value={configChatInput}
-                        onChange={(e) => setConfigChatInput(e.target.value)}
-                        placeholder="Instruct the Room Manager..." 
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
-                      />
-                      <div className="absolute right-1 flex gap-1">
-                        <button className="p-1.5 rounded text-slate-400 hover:text-white transition-colors">
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CONFIG: RIGHT CANVAS */}
-                <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-950/50">
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik00MCAwSDBWMGg0MHoiIGZpbGw9Im5vbmUiLz4KPHBhdGggZD0iTTAgMGg0MHY0MEgwem0yMCAyMGgyMHYyMEgyMHpNMCBwaDIwdjIwSDB6IiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0zOSAzOWgxdjFIMzloMXYtMWgtMXptLTIwIDBoMXYxSDE5djFoLTF6IiBmaWxsPSIjMWUzYThhIi8+Cjwvc3ZnPg==')] opacity-10 z-0"></div>
-                  
-                  {/* Toggle Header */}
-                  <div className="relative z-10 w-full px-6 py-3 border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm shadow-sm flex items-center justify-center shrink-0">
-                    <div className="flex space-x-1 bg-slate-900/80 p-1 rounded-lg border border-slate-700/50">
-                      <button 
-                        onClick={() => setConfigCanvasView('users')} 
-                        className={`flex items-center px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${configCanvasView === 'users' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
-                      >
-                        <UserPlus className="w-3.5 h-3.5 mr-2" />
-                        User Roster Setup
-                      </button>
-                      <button 
-                        onClick={() => setConfigCanvasView('roster')} 
-                        className={`flex items-center px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${configCanvasView === 'roster' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
-                      >
-                        <Bot className="w-3.5 h-3.5 mr-2" />
-                        Agent Roster Setup
-                      </button>
-                      <button 
-                        onClick={() => setConfigCanvasView('dashboard')} 
-                        className={`flex items-center px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${configCanvasView === 'dashboard' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
-                      >
-                        <LayoutDashboard className="w-3.5 h-3.5 mr-2" />
-                        Dashboard Configuration
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Canvas Content */}
-                  <div className="relative z-10 p-8 flex-1 overflow-y-auto">
-                    
-                    {configCanvasView === 'users' ? (
-                      /* Users Setup View */
-                      <div className="max-w-4xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                              <h2 className="text-xl font-bold text-white mb-1">User Roster Setup</h2>
-                              <p className="text-sm text-slate-400">Invite human operators and assign room roles and access permissions.</p>
-                            </div>
-                            <button className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 transition-colors px-3 py-1.5 rounded text-xs text-white shadow">
-                              <Plus className="w-3.5 h-3.5"/> Invite User
-                            </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-700 flex flex-col gap-4 hover:border-indigo-500/50 transition-colors">
-                              <div className="flex items-start justify-between">
-                                  <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-indigo-400 overflow-hidden">
-                                        <img src={avatarJan} className="w-full h-full object-cover"/>
-                                      </div>
-                                      <div>
-                                          <div className="text-sm font-bold text-white">Jan D.</div>
-                                          <div className="text-[10px] uppercase font-mono text-slate-500 mt-0.5">Role: Mission Lead</div>
-                                      </div>
-                                  </div>
-                                  <button className="text-slate-400 hover:text-white p-1 bg-slate-800 rounded transition-colors"><Settings className="w-4 h-4"/></button>
-                              </div>
-                              <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-                                  <span className="text-[10px] text-slate-400 uppercase tracking-widest">Approver Status: <span className="text-emerald-400">Active</span></span>
-                              </div>
-                           </div>
-                           
-                           <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-700 flex flex-col gap-4 hover:border-indigo-500/50 transition-colors">
-                              <div className="flex items-start justify-between">
-                                  <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-pink-400 overflow-hidden">
-                                        <img src={avatarSarah} className="w-full h-full object-cover"/>
-                                      </div>
-                                      <div>
-                                          <div className="text-sm font-bold text-white">Sarah K</div>
-                                          <div className="text-[10px] uppercase font-mono text-slate-500 mt-0.5">Role: Data Analyst</div>
-                                      </div>
-                                  </div>
-                                  <button className="text-slate-400 hover:text-white p-1 bg-slate-800 rounded transition-colors"><Settings className="w-4 h-4"/></button>
-                              </div>
-                              <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-                                  <span className="text-[10px] text-slate-400 uppercase tracking-widest">Approver Status: <span className="text-slate-500">None</span></span>
-                              </div>
-                           </div>
-                        </div>
-                      </div>
-
-                    ) : configCanvasView === 'roster' ? (
-                      /* Agent Roster Setup View */
-                      <div className="max-w-4xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                              <h2 className="text-xl font-bold text-white mb-1">Agent Roster Setup</h2>
-                              <p className="text-sm text-slate-400">Invite specialized agents into this room and manage their capabilities.</p>
-                            </div>
-                            <button className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 transition-colors px-3 py-1.5 rounded text-xs text-white shadow">
-                              <Plus className="w-3.5 h-3.5"/> Invite Agent
-                            </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {agentsList.map(a => (
-                              <div key={a.id} className="p-4 bg-slate-900/80 rounded-xl border border-slate-700 flex flex-col gap-4 hover:border-indigo-500/50 transition-colors">
-                                  <div className="flex items-start justify-between">
-                                      <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-slate-300 border-2 bg-slate-800 border-slate-600">
-                                            {a.name[0]}
-                                          </div>
-                                          <div>
-                                              <div className="text-sm font-bold text-white">{a.name} Agent</div>
-                                              <div className="text-[10px] uppercase font-mono text-slate-500 mt-0.5">Role: Core Team</div>
-                                          </div>
-                                      </div>
-                                      <button className="text-slate-400 hover:text-white p-1 bg-slate-800 rounded transition-colors"><Settings className="w-4 h-4"/></button>
-                                  </div>
-                                  <div className="text-xs text-slate-400 h-10">
-                                      {a.desc}
-                                  </div>
-                                  <div className="pt-3 border-t border-slate-800">
-                                      <div className="text-[10px] text-slate-500 font-semibold uppercase mb-2">Bound Skills</div>
-                                      <div className="flex flex-wrap gap-2">
-                                          {a.skills.map(skill => (
-                                              <span key={skill} className="bg-slate-800 text-indigo-300 font-mono text-[10px] px-2 py-1 rounded border border-slate-700">{skill}</span>
-                                          ))}
-                                      </div>
-                                  </div>
-                              </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      /* Dashboard Setup View */
-                      <div className="max-w-4xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                        <div className="mb-6">
-                            <h2 className="text-xl font-bold text-white mb-1">Dashboard Configuration</h2>
-                            <p className="text-sm text-slate-400">Manage the elements exposed on the main dashboard view for human operators.</p>
-                        </div>
-
-                        <div className="space-y-6 pb-12">
-                          {directoryConfig.map((category, catIdx) => (
-                            <div key={catIdx} className="glass-panel rounded-xl border border-slate-700 overflow-hidden">
-                              <div className="flex justify-between items-center px-4 py-3 bg-slate-800/40 border-b border-slate-700/60">
-                                <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                                  {category.icon}
-                                  {category.title}
-                                </h3>
-                                <button className="flex items-center gap-1 text-slate-400 hover:text-white text-[10px] font-bold uppercase transition-colors">
-                                  <Plus className="w-3 h-3"/> Add Item
-                                </button>
-                              </div>
-                              <div className="divide-y divide-slate-800">
-                                {category.items.map((item, itemIdx) => (
-                                  <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-900/30 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex flex-col">
-                                        <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                                          {item.title}
-                                          {item.isGhost && <span className="bg-amber-500/20 text-amber-500 text-[9px] px-1.5 py-0.5 rounded font-bold">GHOST</span>}
-                                        </div>
-                                        <div className="text-xs text-slate-500 mt-0.5 flex gap-3">
-                                          <span className="font-mono">{item.type}</span>
-                                          <span>•</span>
-                                          <span>Owner: {item.agent}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                      {/* Visibility Toggle */}
-                                      <div className="flex items-center gap-2">
-                                        {item.visible ? <Eye className="w-4 h-4 text-emerald-400"/> : <EyeOff className="w-4 h-4 text-slate-500"/>}
-                                        <ToggleSwitch 
-                                          checked={item.visible} 
-                                          onChange={() => toggleConfigItemVisibility(catIdx, itemIdx)}
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-colors" title="Edit Config"><Edit className="w-4 h-4"/></button>
-                                        <button className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition-colors" title="Remove"><X className="w-4 h-4"/></button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-                </div>
-              </>
-            ) : platformView === 'monitoring' ? (
-              
-              /* -------------------------------------------------------------
-                 MONITORING / TELEMETRY VIEW
-              ------------------------------------------------------------- */
-              <div className="flex-1 overflow-y-auto bg-slate-950 p-8 animate-[fadeIn_0.3s_ease-out] relative">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik00MCAwSDBWMGg0MHoiIGZpbGw9Im5vbmUiLz4KPHBhdGggZD0iTTAgMGg0MHY0MEgwem0yMCAyMGgyMHYyMEgyMHpNMCBwaDIwdjIwSDB6IiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0zOSAzOWgxdjFIMzloMXYtMWgtMXptLTIwIDBoMXYxSDE5djFoLTF6IiBmaWxsPSIjMWUzYThhIi8+Cjwvc3ZnPg==')] opacity-10 z-0"></div>
-                
-                <div className="relative z-10 max-w-6xl mx-auto space-y-6 pb-12">
-                  <div className="flex justify-between items-end mb-6 border-b border-slate-800 pb-4">
-                     <div>
-                       <h2 className="text-2xl font-bold text-white mb-1">Session Monitoring & Telemetry</h2>
-                       <p className="text-sm text-slate-400">Live oversight of human contributions, artifact status, and AI compute execution.</p>
-                     </div>
-                     <div className="text-right">
-                       <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Session Duration</div>
-                       <div className="text-2xl font-mono text-emerald-400 flex items-center justify-end gap-2"><Clock className="w-5 h-5"/> 01:24:36</div>
-                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     {/* Human Roster */}
-                     <div className="glass-panel p-6 rounded-xl border border-slate-700 shadow-xl">
-                       <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2"><Users className="w-4 h-4"/> Human Roster & Contributions</h3>
-                       <div className="space-y-4">
-                         <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-                           <div className="flex items-center gap-3">
-                             <img src={avatarJan} className="w-10 h-10 rounded-full border-2 border-indigo-500 object-cover shadow-lg"/>
-                             <div>
-                               <div className="text-sm font-bold text-white">Jan D.</div>
-                               <div className="text-[10px] uppercase text-indigo-400 mt-0.5">Mission Lead</div>
-                             </div>
-                           </div>
-                           <div className="flex gap-6 text-center">
-                             <div><div className="text-lg font-mono text-slate-200">14</div><div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Prompts</div></div>
-                             <div><div className="text-lg font-mono text-emerald-400">3</div><div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Approvals</div></div>
-                           </div>
-                         </div>
-                         <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-                           <div className="flex items-center gap-3">
-                             <img src={avatarSarah} className="w-10 h-10 rounded-full border-2 border-pink-500 object-cover shadow-lg"/>
-                             <div>
-                               <div className="text-sm font-bold text-white">Sarah K</div>
-                               <div className="text-[10px] uppercase text-pink-400 mt-0.5">Data Analyst</div>
-                             </div>
-                           </div>
-                           <div className="flex gap-6 text-center">
-                             <div><div className="text-lg font-mono text-slate-200">8</div><div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Prompts</div></div>
-                             <div><div className="text-lg font-mono text-slate-500">0</div><div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Approvals</div></div>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-
-                     {/* Deliverables */}
-                     <div className="glass-panel p-6 rounded-xl border border-slate-700 shadow-xl">
-                       <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2"><FileText className="w-4 h-4"/> Deliverables Status</h3>
-                       <div className="space-y-3">
-                         <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-                           <div>
-                             <div className="text-sm font-bold text-slate-200">Q3 Executive Summary</div>
-                             <div className="text-[10px] text-amber-400 uppercase mt-0.5 flex items-center gap-1.5 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Drafting (Forecasting)</div>
-                           </div>
-                           <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-400 text-xs font-semibold rounded border border-slate-700 transition-colors">
-                             <Send className="w-3 h-3"/> Submit
-                           </button>
-                         </div>
-                         <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-                           <div>
-                             <div className="text-sm font-bold text-slate-200">Regional Action Plan</div>
-                             <div className="text-[10px] text-emerald-400 uppercase mt-0.5 flex items-center gap-1.5 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Ready for Review</div>
-                           </div>
-                           <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded border border-indigo-500 transition-colors shadow-[0_0_10px_rgba(79,70,229,0.3)]">
-                             <Send className="w-3 h-3"/> Submit
-                           </button>
-                         </div>
-                       </div>
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                     {/* Object Activity */}
-                     <div className="glass-panel p-6 rounded-xl border border-slate-700 shadow-xl lg:col-span-2">
-                       <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2"><Activity className="w-4 h-4"/> System Object Activity</h3>
-                       <div className="grid grid-cols-3 gap-4">
-                         
-                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800 flex flex-col items-center justify-center text-center group hover:border-pink-500/50 transition-colors shadow-inner">
-                           <Database className="w-6 h-6 text-pink-400 mb-2 opacity-80 group-hover:opacity-100 transition-opacity"/>
-                           <div className="text-2xl font-mono text-white mb-1">450</div>
-                           <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Calls Rendered</div>
-                           <div className="text-[10px] text-slate-600 mt-1 border-t border-slate-800 pt-1 w-full">Inputs & Data</div>
-                         </div>
-                         
-                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800 flex flex-col items-center justify-center text-center group hover:border-cyan-500/50 transition-colors shadow-inner">
-                           <BarChart2 className="w-6 h-6 text-cyan-400 mb-2 opacity-80 group-hover:opacity-100 transition-opacity"/>
-                           <div className="text-2xl font-mono text-white mb-1">12</div>
-                           <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Views Rendered</div>
-                           <div className="text-[10px] text-slate-600 mt-1 border-t border-slate-800 pt-1 w-full">Charts & Analytics</div>
-                         </div>
-
-                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800 flex flex-col items-center justify-center text-center group hover:border-indigo-500/50 transition-colors shadow-inner">
-                           <Wrench className="w-6 h-6 text-indigo-400 mb-2 opacity-80 group-hover:opacity-100 transition-opacity"/>
-                           <div className="text-2xl font-mono text-white mb-1">14</div>
-                           <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Times Invoked</div>
-                           <div className="text-[10px] text-slate-600 mt-1 border-t border-slate-800 pt-1 w-full">Tools & Functions</div>
-                         </div>
-
-                       </div>
-                     </div>
-                     
-                     {/* Compute Tokens */}
-                     <div className="glass-panel p-6 rounded-xl border border-slate-700 shadow-xl">
-                       <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2"><Cpu className="w-4 h-4"/> Tech Layer / Models</h3>
-                       <div className="space-y-4">
-                         <div className="flex flex-col gap-1">
-                           <div className="flex justify-between text-xs text-slate-300">
-                             <span className="font-semibold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-500"></span> Logistics Agent</span>
-                             <span className="font-mono text-slate-400">12,450 tx</span>
-                           </div>
-                           <div className="text-[9px] uppercase tracking-wider text-slate-500 ml-4 font-mono">Model: gpt-4o</div>
-                         </div>
-                         <div className="flex flex-col gap-1">
-                           <div className="flex justify-between text-xs text-slate-300">
-                             <span className="font-semibold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-cyan-500"></span> Forecasting Agent</span>
-                             <span className="font-mono text-cyan-400">45,200 tx</span>
-                           </div>
-                           <div className="text-[9px] uppercase tracking-wider text-slate-500 ml-4 font-mono">Model: claude-3.5-sonnet</div>
-                         </div>
-                         <div className="flex flex-col gap-1">
-                           <div className="flex justify-between text-xs text-slate-300">
-                             <span className="font-semibold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Risk Agent</span>
-                             <span className="font-mono text-amber-400">8,100 tx</span>
-                           </div>
-                           <div className="text-[9px] uppercase tracking-wider text-slate-500 ml-4 font-mono">Model: gemini-1.5-pro</div>
-                         </div>
-                         <div className="pt-4 mt-2 border-t border-slate-800 flex justify-between items-center text-xs bg-slate-900/50 p-3 rounded-lg">
-                            <span className="text-slate-400 uppercase font-bold tracking-wider">Total Session Tokens</span>
-                            <span className="font-mono text-emerald-400 font-bold text-sm">65,750</span>
-                         </div>
-                       </div>
-                     </div>
-                  </div>
-
-                </div>
-              </div>
-
-            ) : (
-
-              /* -------------------------------------------------------------
-                 EXECUTION VIEW (Default Operator UX)
-              ------------------------------------------------------------- */
-              <>
-                {/* LEFT COLUMN: CHAT & ROSTER */}
-                <div className={`glass-panel border-t-0 border-b-0 border-l-0 flex flex-col z-0 relative shadow-2xl transition-all duration-300 ease-in-out ${chatMode === 'normal' ? 'w-1/3' : 'w-72'} shrink-0`}>
-                  
-                  {/* Chat Header (Controls, Text/Live toggle, Combined Roster) */}
-                  <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Ledger</span>
-                        <div className="flex bg-slate-950 rounded border border-slate-700/50 p-0.5">
-                           <button onClick={()=>setLedgerMode('text')} className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-colors ${ledgerMode === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Text</button>
-                           <button onClick={()=>setLedgerMode('live')} className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-colors ${ledgerMode === 'live' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Live (A/V)</button>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded border border-slate-700/50">
-                        <button onClick={() => setChatMode('normal')} className={`p-1 rounded transition-colors ${chatMode === 'normal' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`} title="Normal Width">
-                          <AlignJustify className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => setChatMode('narrow')} className={`p-1 rounded transition-colors ${chatMode === 'narrow' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`} title="Narrow Width">
-                          <AlignLeft className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Unified Roster (Humans + Agents) */}
-                    <div className="flex flex-wrap items-center justify-start gap-2 px-1 pt-1">
-                      {/* Human Avatars */}
-                      <div className="flex items-center">
-                        <img src={avatarJan} alt="Jan D." className="w-7 h-7 rounded-full border-2 border-indigo-400 shadow-lg object-cover z-10" title="Jan D." />
-                        <img src={avatarSarah} alt="Sarah K" className="w-7 h-7 rounded-full border-2 border-pink-400 shadow-lg object-cover -ml-2 z-0" title="Sarah K" />
-                      </div>
-                      
-                      {/* Divider */}
-                      <div className="w-px h-5 bg-slate-700 mx-1"></div>
-
-                      {/* Agents */}
-                      {agentsList.map(agent => (
-                        <div 
-                          key={agent.id} 
-                          onClick={() => setSelectedAgent(agent.id === selectedAgent ? null : agent.id)}
-                          className={`relative flex items-center justify-center w-7 h-7 rounded-full border-2 cursor-pointer transition-all ${selectedAgent === agent.id ? 'ring-2 ring-white scale-110' : 'hover:scale-105'} 
-                            ${agent.state === 'idle' ? 'bg-slate-800 border-slate-600' : ''}
-                            ${agent.state === 'computing' ? 'bg-cyan-950 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]' : ''}
-                            ${agent.state === 'blocked' ? 'bg-amber-950 border-amber-500 border-dashed' : ''}
-                          `}
-                          title={`${agent.name} (${agent.state})`}
-                        >
-                          {agent.state === 'idle' && <span className="absolute inset-0 rounded-full bg-slate-500/20 animate-pulse-slow"></span>}
-                          {agent.state === 'computing' && <span className="absolute w-4 h-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></span>}
-                          {agent.state === 'blocked' && <Lock className="w-2.5 h-2.5 text-amber-500 z-10" />}
-                          {agent.state !== 'blocked' && <span className={`text-[9px] font-bold z-10 ${agent.state==='computing' ? 'text-cyan-400' : 'text-slate-400'}`}>{agent.name[0]}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Live A/V Feeds (Only visible in Live Mode) */}
-                  {ledgerMode === 'live' && (
-                    <div className="p-3 bg-slate-900 border-b border-slate-800 grid grid-cols-2 gap-2 shrink-0 animate-[fadeIn_0.2s_ease-out]">
-                      <div className="relative rounded-lg overflow-hidden border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)] bg-slate-800 aspect-video flex items-center justify-center">
-                         <img src={liveVideoJan} className="absolute inset-0 w-full h-full object-cover opacity-90" />
-                         <div className="absolute top-2 right-2 bg-red-500/90 text-white text-[8px] px-1.5 py-0.5 rounded uppercase font-bold animate-pulse tracking-widest shadow">Live</div>
-                         <div className="absolute bottom-1 left-1 bg-slate-900/80 px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex items-center gap-1"><Mic className="w-2.5 h-2.5 text-emerald-400 animate-pulse"/> Jan D.</div>
-                      </div>
-                      <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-800 aspect-video flex items-center justify-center">
-                         <img src={liveVideoSarah} className="absolute inset-0 w-full h-full object-cover opacity-60" />
-                         <div className="absolute bottom-1 left-1 bg-slate-900/80 px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex items-center gap-1"><Mic className="w-2.5 h-2.5 text-slate-500"/> Sarah K</div>
-                      </div>
-                      <div className="col-span-2 text-center text-[10px] text-slate-500 italic mt-1 flex items-center justify-center gap-1">
-                        <Video className="w-3 h-3"/> Live transcription active
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Chat Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-5">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <img src={avatarJan} className="w-5 h-5 rounded-full object-cover"/>
-                        <span className="text-[11px] text-slate-400">Jan D. • Public</span>
-                      </div>
-                      <div className="bg-slate-800/50 p-2.5 rounded-lg rounded-tl-none border border-slate-700/50 text-xs text-slate-200 leading-relaxed">
-                        Team, Q3 margins are looking soft in EMEA. @Forecasting, build the margin vs target cascade for the region.
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-cyan-900/50 border border-cyan-500/50 flex items-center justify-center">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                        </div>
-                        <span className="text-[11px] text-cyan-400">Forecasting • Public</span>
-                      </div>
-                      <div className="bg-cyan-950/20 p-2.5 rounded-lg rounded-tl-none border border-cyan-900/50 text-xs text-slate-300 leading-relaxed">
-                        Visualizing Q3 EMEA cascade on the canvas. Actuals fell $200k short of the $2M target, primarily driven by expedited logistics costs.
-                      </div>
-                    </div>
-                    
-                    {ledgerMode === 'live' && (
-                      <div className="space-y-1.5 animate-[fadeIn_0.3s_ease-out]">
-                        <div className="flex items-center gap-2">
-                          <img src={avatarJan} className="w-5 h-5 rounded-full object-cover border border-indigo-500"/>
-                          <span className="text-[11px] text-indigo-400 flex items-center gap-1"><Mic className="w-2.5 h-2.5"/> Jan D. • Live Transcript</span>
-                        </div>
-                        <div className="bg-slate-900/80 p-2.5 rounded-lg rounded-tl-none border-l-2 border-indigo-500 text-xs text-slate-300 leading-relaxed italic">
-                          "Okay, I see the margin cascade... @Risk, calculate our tier 1 supplier exposure if this port strike continues another week."
-                        </div>
-                      </div>
-                    )}
-
-                    {!ledgerMode === 'live' && (
-                      <div className="space-y-1.5 pt-3 relative">
-                        <div className="absolute -top-3 left-2.5 w-px h-5 bg-amber-500/30"></div>
-                        <div className="flex items-center gap-2">
-                          <img src={avatarJan} className="w-5 h-5 rounded-full object-cover"/>
-                          <span className="text-[11px] text-amber-500 flex items-center gap-1">
-                            <Lock className="w-2.5 h-2.5" />
-                            Jan D. • (p)
-                          </span>
-                        </div>
-                        <div className="bg-slate-900/80 p-2.5 rounded-lg rounded-tl-none border border-amber-500/30 border-dashed text-xs text-slate-300 leading-relaxed">
-                          <span className="text-amber-500 font-mono text-[10px] mr-1.5">(p)</span>
-                          @Risk calculate our tier 1 supplier exposure if the logistics strike continues.
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-amber-900/50 border border-amber-500/50 flex items-center justify-center">
-                          <Lock className="w-2.5 h-2.5 text-amber-500" />
-                        </div>
-                        <span className="text-[11px] text-amber-500">Risk • Private</span>
-                      </div>
-                      <div className="bg-amber-950/10 p-2.5 rounded-lg rounded-tl-none border border-amber-500/30 border-dashed text-xs text-slate-300 leading-relaxed">
-                        I generated a ghost widget modeling the exposure. Tier 1 risk hits 85% critical threshold by week 3 of a strike. 
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Input Area */}
-                  <div className="p-3 bg-slate-900/80 border-t border-slate-800">
-                    <div className="relative flex items-center">
-                      <input 
-                        type="text" 
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder={ledgerMode === 'live' ? "Microphone active. Type to manually instruct..." : "Message room..."} 
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600"
-                      />
-                      <div className="absolute right-1 flex gap-1">
-                        <button className="p-1.5 rounded text-slate-400 hover:text-white transition-colors">
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CENTER CANVAS AREA */}
-                <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-950/50">
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik00MCAwSDBWMGg0MHoiIGZpbGw9Im5vbmUiLz4KPHBhdGggZD0iTTAgMGg0MHY0MEgwem0yMCAyMGgyMHYyMEgyMHpNMCBwaDIwdjIwSDB6IiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0zOSAzOWgxdjFIMzloMXYtMWgtMXptLTIwIDBoMXYxSDE5djFoLTF6IiBmaWxsPSIjMWUzYThhIi8+Cjwvc3ZnPg==')] opacity-20 z-0"></div>
-
-                  {/* Canvas Navigation Bar (BREADCRUMBS) */}
-                  <div className="relative z-10 w-full px-6 py-3 border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm shadow-sm flex items-center justify-between shrink-0">
-                    
-                    {/* Breadcrumbs */}
-                    <div className="flex items-center text-xs font-medium text-slate-400">
-                      <button 
-                        onClick={handleBreadcrumbHome} 
-                        className={`flex items-center gap-1.5 transition-colors ${canvasView === 'directory' ? 'text-indigo-400' : 'hover:text-indigo-300'}`}
-                      >
-                        <LayoutDashboard className="w-3.5 h-3.5" />
-                        Dashboard Directory
-                      </button>
-                      
-                      {activeCategory && (
-                        <>
-                          <ChevronRight className="w-3.5 h-3.5 mx-2 opacity-50" />
-                          <span className="text-slate-400">{activeCategory}</span>
-                        </>
-                      )}
-                      
-                      {activeArtifact && (
-                        <>
-                          <ChevronRight className="w-3.5 h-3.5 mx-2 opacity-50" />
-                          <span className="text-slate-200 font-semibold">{activeArtifact}</span>
-                        </>
-                      )}
-                    </div>
-                    
-                    {/* Contextual Workflow (Only shows in Workspace mode) */}
-                    {canvasView === 'workspace' && (
-                      <div className="hidden lg:flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest opacity-80 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700/50">
-                        <div className="flex items-center gap-1.5 text-emerald-400">
-                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center text-[8px]">✓</div>
-                          Ingest
-                        </div>
-                        <ChevronRight className="w-3 h-3 text-slate-600" />
-                        <div className="flex items-center gap-1.5 text-emerald-400">
-                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center text-[8px]">✓</div>
-                          Check
-                        </div>
-                        <ChevronRight className="w-3 h-3 text-slate-600" />
-                        <div className="flex items-center gap-1.5 text-cyan-400">
-                          <div className="relative w-3.5 h-3.5 rounded-full bg-cyan-900/50 border border-cyan-500/50 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                          </div>
-                          Analysis
-                        </div>
-                        <ChevronRight className="w-3 h-3 text-slate-600" />
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                          <div className="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[8px]">4</div>
-                          Save
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dynamic Canvas Area */}
-                  <div className="relative z-10 p-6 flex-1 overflow-y-auto">
-                    
-                    {canvasView === 'directory' ? (
-                      /* DIRECTORY / DASHBOARD VIEW */
-                      <div className="max-w-6xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                        <div className="mb-8">
-                          <h2 className="text-xl font-bold text-white mb-2">Room Artifacts & Objects</h2>
-                          <p className="text-sm text-slate-400">Categorized directory of all generated deliverables, widgets, data feeds, and active tools in this session.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-                          {directoryConfig.map((category, idx) => (
-                            <div key={idx} className="flex flex-col gap-4">
-                              <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2 border-b border-slate-800 pb-2">
-                                {category.icon}
-                                {category.title}
-                                <span className="ml-auto text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full">
-                                  {category.items.filter(i => i.visible).length}
-                                </span>
-                              </h3>
-                              <div className="flex flex-col gap-3">
-                                {category.items.filter(item => item.visible).map(item => (
-                                  <div 
-                                    key={item.id} 
-                                    onClick={() => handleArtifactClick(category.title, item)}
-                                    className={`group p-4 rounded-xl border transition-all cursor-pointer ${
-                                      item.isGhost ? 'bg-slate-900/40 border-amber-500/30 border-dashed hover:border-amber-500/60' :
-                                      item.isLive ? 'bg-slate-800/40 border-cyan-500/30 hover:border-cyan-500/60 shadow-[0_0_15px_rgba(34,211,238,0.05)]' :
-                                      'bg-slate-900/60 border-slate-800 hover:border-slate-600 hover:bg-slate-800/60'
-                                    }`}
-                                  >
-                                    <div className="flex justify-between items-start mb-2">
-                                      <h4 className={`text-sm font-semibold ${item.isGhost ? 'text-amber-400' : 'text-slate-200'}`}>
-                                        {item.title}
-                                      </h4>
-                                      <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded ${
-                                        item.isGhost ? 'bg-amber-500/20 text-amber-500' :
-                                        item.isLive ? 'bg-cyan-500/20 text-cyan-400' :
-                                        'bg-slate-800 text-slate-400'
-                                      }`}>
-                                        {item.status}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs text-slate-500">
-                                      <span className="font-mono">{item.type}</span>
-                                      {item.agent && <span>Owner: {item.agent}</span>}
-                                      {(item.isLive || item.isGhost) && <span className="text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1">Open <ArrowUpRight className="w-3 h-3" /></span>}
-                                    </div>
-                                  </div>
-                                ))}
-                                {category.items.filter(i => i.visible).length === 0 && (
-                                  <div className="p-4 rounded-xl border border-slate-800 border-dashed text-slate-600 text-xs italic text-center">
-                                    No visible items configured for this section.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      /* ACTIVE WORKSPACE VIEW */
-                      <div className="max-w-4xl mx-auto space-y-6 animate-[fadeIn_0.3s_ease-out] pb-12">
-                        
-                        {/* Public Widget (Show if active artifact matches, or if we are just showing the whole workspace) */}
-                        {(!activeArtifact || activeArtifact === 'EMEA Q3 Margin Cascade') && (
-                          <div className="glass-panel rounded-xl overflow-hidden shadow-2xl border border-slate-700/60 transition-all duration-300 animate-[slideIn_0.3s_ease-out]">
-                            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/60 bg-slate-800/40">
-                              <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                                EMEA Q3 Margin Cascade
-                              </h3>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-wider">
-                                <span>Live View</span>
-                                <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300">Public</span>
-                              </div>
-                            </div>
-                            <div className="p-4 h-64 w-full">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={marginData}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                  <XAxis dataKey="name" stroke="#64748b" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} />
-                                  <YAxis stroke="#64748b" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} />
-                                  <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', color: '#f1f5f9'}} itemStyle={{color: '#38bdf8'}} />
-                                  <Line type="monotone" dataKey="target" stroke="#475569" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Target" />
-                                  <Line type="monotone" dataKey="actual" stroke="#38bdf8" strokeWidth={3} dot={{r: 4, fill: '#0f172a', stroke: '#38bdf8', strokeWidth: 2}} name="Actuals" />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Ghost Widget (Private) (Show if active artifact matches, or if we are just showing the whole workspace) */}
-                        {(!activeArtifact || activeArtifact === 'Supplier Exposure Model') && (
-                          <div className={`transition-all duration-500 animate-[slideIn_0.4s_ease-out] ${isPromoted ? 'glass-panel rounded-xl border border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'ghost-panel rounded-xl'} overflow-hidden`}>
-                            <div className={`flex items-center justify-between px-4 py-2.5 border-b ${isPromoted ? 'border-indigo-500/30 bg-indigo-900/20' : 'border-amber-500/20 bg-slate-900/60'}`}>
-                              <h3 className={`text-xs font-semibold flex items-center gap-2 ${isPromoted ? 'text-indigo-300' : 'text-amber-500'}`}>
-                                {isPromoted ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                                Supplier Exposure Model
-                              </h3>
-                              {!isPromoted ? (
-                                <button 
-                                  onClick={() => setIsPromoted(true)}
-                                  className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded transition-colors"
-                                >
-                                  Promote to Public
-                                </button>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] uppercase font-bold tracking-wide border border-indigo-500/30">
-                                  Shared Context
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="p-4 h-56 w-full relative">
-                              {!isPromoted && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 opacity-5 text-8xl font-black text-amber-500 rotate-12">
-                                  GHOST
-                                </div>
-                              )}
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={exposureData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                                  <XAxis type="number" domain={[0, 100]} hide />
-                                  <YAxis dataKey="category" type="category" stroke="#64748b" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} />
-                                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155'}} />
-                                  <Bar dataKey="risk" radius={[0, 4, 4, 0]} barSize={20}>
-                                    {exposureData.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={entry.risk > 80 ? '#ef4444' : entry.risk > 40 ? '#f59e0b' : '#10b981'} />
-                                    ))}
-                                  </Bar>
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Placeholder for non-widget artifacts */}
-                        {activeArtifact && activeArtifact !== 'EMEA Q3 Margin Cascade' && activeArtifact !== 'Supplier Exposure Model' && (
-                          <div className="glass-panel rounded-xl p-12 flex flex-col items-center justify-center text-slate-500 border border-slate-700/60 animate-[slideIn_0.3s_ease-out]">
-                            <FileText className="w-12 h-12 mb-4 opacity-50"/>
-                            <h3 className="text-lg text-slate-300 font-semibold mb-2">{activeArtifact}</h3>
-                            <p className="text-sm">Preview rendering available for selected artifact type.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  </div>
-                </div>
-
-                {/* RIGHT PANEL: AGENT INSPECTOR */}
-                {selectedAgent && activeAgent && (
-                  <div className="w-72 glass-panel border-t-0 border-b-0 border-r-0 flex flex-col z-20 shadow-[-10px_0_20px_rgba(0,0,0,0.3)] shrink-0 animate-[slideIn_0.2s_ease-out]">
-                    <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Inspector</span>
-                      <button onClick={() => setSelectedAgent(null)} className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors">
-                        <PanelRightClose className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <div className="p-5 flex flex-col gap-4">
-                      {/* Header */}
-                      <div className="flex items-center gap-3">
-                        <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2
-                            ${activeAgent.state === 'idle' ? 'bg-slate-800 border-slate-600' : ''}
-                            ${activeAgent.state === 'computing' ? 'bg-cyan-950 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]' : ''}
-                            ${activeAgent.state === 'blocked' ? 'bg-amber-950 border-amber-500 border-dashed' : ''}
-                          `}>
-                          {activeAgent.state !== 'blocked' && <span className={`text-xs font-bold ${activeAgent.state==='computing' ? 'text-cyan-400' : 'text-slate-400'}`}>{activeAgent.name[0]}</span>}
-                          {activeAgent.state === 'blocked' && <Lock className="w-4 h-4 text-amber-500 z-10" />}
-                        </div>
-                        <div>
-                          <h2 className="text-sm font-bold text-white">{activeAgent.name} Agent</h2>
-                          <div className="text-[10px] uppercase font-mono text-slate-500 mt-0.5">Status: {activeAgent.state}</div>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-slate-400 leading-relaxed border-b border-slate-800 pb-4">
-                        {activeAgent.desc}
-                      </p>
-
-                      {/* Skills */}
-                      <div>
-                        <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-3">Available Skills</h3>
-                        <div className="space-y-2">
-                          {activeAgent.skills.map(skill => (
-                            <div key={skill} className="flex items-center justify-between p-2 rounded bg-slate-900/50 border border-slate-800 hover:border-slate-600 cursor-pointer transition-colors group">
-                              <code className="text-xs text-indigo-300 font-mono group-hover:text-indigo-200">{skill}</code>
-                              <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {activeAgent.state === 'blocked' && (
-                        <div className="mt-4 p-3 rounded bg-amber-950/30 border border-amber-500/30">
-                          <div className="flex items-center gap-2 text-amber-500 mb-1">
-                            <Lock className="w-3 h-3" />
-                            <span className="text-xs font-bold uppercase tracking-wide">Approval Required</span>
-                          </div>
-                          <p className="text-[10px] text-amber-200/70 leading-relaxed">Agent requires human approval to escalate external supplier warning.</p>
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-            
-          </main>
-        </div>
-      );
-    };
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<SubjectRoomDashboard />);
-  </script>
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t) return;
+  const ds=t.dataset;
+  if (t.hasAttribute('data-play-start')){ document.getElementById('welcome').hidden=true; autoplay(); return; }
+  if (t.hasAttribute('data-explore')){ document.getElementById('welcome').hidden=true; S.drawer='step'; return render(); }
+  if (t.hasAttribute('data-play')){ if(!AP.on) autoplay(); else { AP.paused=!AP.paused; render(); renderCap(); } return; }
+  if (t.hasAttribute('data-stop')) return stopPlay();
+  if (AP.on && e.isTrusted && !AP.paused){ AP.paused=true; caption('PAUSED','You took over. Press <b>▶ Resume</b> to carry on with the walkthrough, or <b>■ Stop</b> to explore on your own.'); }
+  if (ds.wf!==undefined) return go(+ds.wf);
+  if (ds.step) return go(cur+(+ds.step));
+  if (t.hasAttribute('data-insp')){ S.drawer=S.drawer==='step'?null:'step'; return render(); }
+  if (t.hasAttribute('data-close')){ S.drawer=null; return render(); }
+  if (ds.pill) return runPill(ds.pill);
+  if (ds.cfg){ S.cfgView=ds.cfg; S.newItem=null; return render(); }
+  if (ds.vis){ S.vis[ds.vis]=!S.vis[ds.vis]; return render(); }
+  if (ds.ledger){ S.ledger=ds.ledger; return render(); }
+  if (ds.agent){ S.drawer=S.drawer==='agent:'+ds.agent?null:'agent:'+ds.agent; return render(); }
+  if (ds.art){ const it=directory().flatMap(g=>g.items).find(x=>x.id===ds.art); S.canvas='workspace'; S.cat=ds.cat; S.art=it.title; return render(); }
+  if (t.hasAttribute('data-home')){ S.canvas='directory'; S.cat=null; S.art=null; return render(); }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1); if(e.key==='Escape'&&S.drawer){S.drawer=null;render();} });
+const H0=location.hash, mm=H0.match(/step-(\d+)/); go(mm?+mm[1]-1:0);
+if (/play/.test(H0)) autoplay();
+else if (!mm) document.getElementById('welcome').hidden=false;
+</script>
 </body>
 </html>
