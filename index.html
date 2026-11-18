@@ -299,6 +299,23 @@ tr.changed td{background:rgba(25,194,160,.06)}
   .mact .btn{padding:16px;font-size:15px;border-radius:8px}
 }
 
+/* step overlay (walkthrough only) */
+.stepov{position:fixed;z-index:22;display:grid;place-items:center;padding:24px;background:rgba(8,13,26,.84);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .35s;pointer-events:none}
+.stepov[hidden]{display:none}
+.stepov.show{opacity:1;pointer-events:auto}
+.sov{width:min(640px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-top:3px solid var(--teal);border-radius:14px;padding:28px 32px 22px;box-shadow:0 20px 50px rgba(0,0,0,.5);transform:translateY(8px);transition:transform .35s}
+.stepov.show .sov{transform:none}
+.sov.t{border-top-color:#5357c8}
+.sov .num{width:44px;height:44px;border-radius:50%;background:var(--teal2);color:#04202a;display:grid;place-items:center;font-family:var(--mono);font-size:18px;font-weight:700;flex-shrink:0}
+.sov.t .num{background:#5357c8;color:#fff}
+.sov .hd{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+.sov h2{font-size:26px;line-height:1.25}
+.sov .ilist{gap:12px}
+.sov .ilist li{font-size:16px;line-height:1.55}
+.sov .bar{height:3px;background:var(--line2);border-radius:2px;overflow:hidden;margin-top:22px}
+.sov .bar i{display:block;height:100%;width:0;background:var(--teal)}
+.sov .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
 /* ================= responsive (kept last so it overrides base styles) ================= */
 .main{container-type:inline-size;container-name:main}
 @media (max-width:1200px){
@@ -400,6 +417,12 @@ tr.changed td{background:rgba(25,194,160,.06)}
   .mflow .ar{display:none}
   .mact{flex-direction:column-reverse;padding:14px 20px 18px}
   .toolbar .crumb2{display:block;line-height:1.6}
+  .stepov{padding:14px}
+  .sov{padding:20px 20px 16px}
+  .sov .hd{gap:12px;margin-bottom:12px}
+  .sov .num{width:36px;height:36px;font-size:15px}
+  .sov h2{font-size:19px}
+  .sov .ilist li{font-size:14.5px}
   .badge-ghost{white-space:nowrap}
 }
 </style>
@@ -433,6 +456,7 @@ tr.changed td{background:rgba(25,194,160,.06)}
   </div>
   <nav class="mnav" id="mnav"><button data-pane="chat">💬 Conversation</button><button data-pane="room">▦ Room</button></nav>
 </div>
+<div class="stepov" id="stepov" hidden></div>
 <div class="modal" id="welcome" hidden>
   <div class="mbox">
     <div class="mb">
@@ -443,7 +467,7 @@ tr.changed td{background:rgba(25,194,160,.06)}
       <div class="mflow"><span class="fs"><i>1</i>Agree purpose</span><span class="ar"></span><span class="fs"><i>2</i>Configure room</span><span class="ar"></span><span class="fs"><i>3</i>Run session</span><span class="ar"></span><span class="fs"><i>4</i>Private sandbox</span><span class="ar"></span><span class="fs"><i>5</i>Monitor</span><span class="ar"></span><span class="fs"><i>6</i>Memorialize</span></div>
       <div class="mtip">No experience needed. Pause at any time, or move between steps with the ← → keys.</div>
     </div>
-    <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 2 min)</button></div>
+    <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 3 min)</button></div>
   </div>
 </div>
 
@@ -869,7 +893,24 @@ function flagPane(p){ if(isM() && document.body.dataset.pane!==p) document.query
 /* ================= autoplay ================= */
 const AP={on:false, paused:false, token:0, done:0, total:0, text:''};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function hold(ms,tok){ let t=0; while(t<ms){ if(AP.token!==tok) throw 'stop'; if(!AP.paused) t+=100; await sleep(100); } }
+async function hold(ms,tok,tick){ let t=0; AP.skip=false; while(t<ms){ if(AP.token!==tok) throw 'stop'; if(AP.skip) break; if(!AP.paused) t+=100; if(tick) tick(t/ms); await sleep(100); } }
+
+/* step overlay over the canvas, walkthrough only */
+function placeOv(){
+  const el=document.getElementById('stepov'), r=document.getElementById('canvas').getBoundingClientRect();
+  const vis=r.width>0;
+  el.style.top=(vis?Math.max(r.top,0):0)+'px'; el.style.left=(vis?r.left:0)+'px';
+  el.style.width=(vis?r.width:window.innerWidth)+'px'; el.style.bottom=(isM()?58:0)+'px';
+}
+function showOv(i){
+  const st=STEPS[i], el=document.getElementById('stepov');
+  el.innerHTML=`<div class="sov ${st.t?'t':''}"><div class="hd"><span class="num">${i+1}</span><div><div class="dl" style="color:${st.t?'#b3b4ff':'#7ee8f5'}">STEP ${i+1} OF ${STEPS.length} · ${st.who.toUpperCase()}</div><h2>${st.title}</h2></div></div>
+    <ul class="ilist">${st.notes.map(n=>`<li>${n}</li>`).join('')}</ul>
+    <div class="bar"><i id="ovbar"></i></div><div class="foot"><span>The room will appear next</span><button class="btn sm" data-skip>Continue ›</button></div></div>`;
+  el.hidden=false; placeOv(); void el.offsetWidth; el.classList.add('show');
+}
+function hideOv(){ const el=document.getElementById('stepov'); el.classList.remove('show'); setTimeout(()=>{ if(!el.classList.contains('show')) el.hidden=true; },350); }
+window.addEventListener('resize',()=>{ if(!document.getElementById('stepov').hidden) placeOv(); });
 function caption(k,t){ AP.text=[k,t]; renderCap(); }
 function renderCap(){
   const c=document.getElementById('cap'); c.hidden=!AP.on; if(!AP.on) return;
@@ -879,14 +920,17 @@ function renderCap(){
 async function autoplay(){
   const tok=++AP.token; AP.on=true; AP.paused=false;
   AP.total=STEPS.reduce((n,s)=>n+1+s.auto.length,0); AP.done=0;
-  resetDemo(); S.drawer='step'; go(0);
+  resetDemo(); S.drawer=null; go(0);
   try{
     for(let i=0;i<STEPS.length;i++){
       if (cur!==i) go(i);
-      S.drawer=isM()?null:'step'; render();
+      S.drawer=null; render();
       if (isM()) setPane('room');
-      caption(`STEP ${i+1} OF ${STEPS.length}`, `<b>${STEPS[i].n}.</b> ${STEPS[i].notes[0]}`);
-      await hold(4500,tok); AP.done++;
+      document.querySelector('.main').scrollTop=0; document.getElementById('canvas').scrollTop=0;
+      caption(`STEP ${i+1} OF ${STEPS.length}`, `<b>${STEPS[i].title}</b>`);
+      showOv(i);
+      await hold(2500+1400*STEPS[i].notes.length,tok,f=>{ const b=document.getElementById('ovbar'); if(b) b.style.width=Math.round(f*100)+'%'; });
+      hideOv(); await hold(500,tok); AP.done++;
       for(const l of STEPS[i].auto){
         if (isM()){ setPane('chat'); await hold(400,tok); }
         const b=[...document.querySelectorAll('#sugs .sug')].find(x=>x.dataset.pill===l);
@@ -905,7 +949,7 @@ async function autoplay(){
     AP.on=false; render(); renderCap();
   }catch(e){ /* stopped */ }
 }
-function stopPlay(){ AP.token++; AP.on=false; AP.paused=false; render(); renderCap(); }
+function stopPlay(){ AP.token++; AP.on=false; AP.paused=false; hideOv(); render(); renderCap(); }
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button'); if(!t) return;
@@ -915,6 +959,7 @@ document.addEventListener('click',e=>{
   if (ds.pane){ setPane(ds.pane); return; }
   if (t.hasAttribute('data-play')){ if(!AP.on) autoplay(); else { AP.paused=!AP.paused; render(); renderCap(); } return; }
   if (t.hasAttribute('data-stop')) return stopPlay();
+  if (t.hasAttribute('data-skip')){ AP.skip=true; if(AP.paused){ AP.paused=false; render(); renderCap(); } return; }
   if (AP.on && e.isTrusted && !AP.paused){ AP.paused=true; caption('PAUSED','You took over. Press <b>▶ Resume</b> to carry on with the walkthrough, or <b>■ Stop</b> to explore on your own.'); }
   if (ds.wf!==undefined) return go(+ds.wf);
   if (ds.step) return go(cur+(+ds.step));
