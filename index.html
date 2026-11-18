@@ -315,6 +315,19 @@ tr.changed td{background:rgba(25,194,160,.06)}
 .sov .bar{height:3px;background:var(--line2);border-radius:2px;overflow:hidden;margin-top:22px}
 .sov .bar i{display:block;height:100%;width:0;background:var(--teal)}
 .sov .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+@media (min-width:1024px){
+  .sov{width:min(860px,100%);padding:40px 48px 30px;border-radius:16px;border-top-width:4px}
+  .sov .hd{gap:22px;margin-bottom:26px}
+  .sov .num{width:58px;height:58px;font-size:23px}
+  .sov .dl{font-size:12px}
+  .sov h2{font-size:34px}
+  .sov .ilist{gap:16px}
+  .sov .ilist li{font-size:19px;line-height:1.55;padding-left:18px}
+  .sov .ilist li::before{top:11px;width:7px;height:7px}
+  .sov .bar{height:4px;margin-top:30px}
+  .sov .foot{font-size:12.5px;margin-top:16px}
+  .sov .foot .btn{font-size:13px;padding:8px 14px}
+}
 
 /* ================= responsive (kept last so it overrides base styles) ================= */
 .main{container-type:inline-size;container-name:main}
@@ -435,7 +448,7 @@ tr.changed td{background:rgba(25,194,160,.06)}
       OSL Cast Platform
     </div>
     <div class="nav">
-      <div class="crumbs">Org Hub <span class="sep">›</span> Subject Rooms <span class="sep">›</span> FP&amp;A Core Room</div>
+      <div class="crumbs">Org Hub <span class="sep">›</span> Subject Rooms <span class="sep">›</span> FP&amp;A example</div>
       <div class="user" style="margin-left:auto"><div><b id="userName">Jan D.</b><span id="userRole">Mission Lead</span><span class="org"> · Orchestration Services Limited</span></div><div class="avatar">J</div></div>
     </div>
   </header>
@@ -550,7 +563,7 @@ const STEPS = [
   auto:['Draft the purpose','Set the focus','Propose objectives','Tighten objective 2','Agree the charter','Set up the room'],
   notes:['Every room starts with an agreement on why it exists. The Room Manager agent leads it as a guided conversation.','It asks three things in order: the purpose, the focus (what’s in and out of scope), and measurable objectives, each with an owner.','You can accept its drafts or change them. Agreeing them creates version 1.0 of the room charter.','People and agents in the room work to the charter. At the end, the session is checked against its objectives.']},
  {n:'Configure room', who:'Mission Lead · Jan D.', title:'Configure the room', agent:'Room Manager',
-  chat:[['ai','Welcome to the FP&A Core Room setup. I can set up the people and agents in the room, bind data sources, and decide what appears on the dashboard.','Room Manager']],
+  chat:[['ai','Welcome to the FP&A example room setup. I can set up the people and agents in the room, bind data sources, and decide what appears on the dashboard.','Room Manager']],
   pills:[
     {l:'Invite Sarah K as Data Analyst', r:'Sarah K is invited as Data Analyst, with prompt access and no approval rights.', a:'sarah'},
     {l:'Add the Salesforce Q3 feed, hidden', r:'Connected Salesforce Q3 Opportunities under Inputs & Data. It’s hidden by default; switch it on in the Dashboard tab when operators need it.', a:'sf'},
@@ -595,7 +608,7 @@ const STEPS = [
   pills:[
     {l:'Promote the exposure model first', when:()=>!S.promoted && !S.closed, r:'Supplier Exposure Model promoted. It’s now in the manifest to commit.', a:'promote'},
     {l:'Memorialize & close', when:()=>!S.closed, r:()=>`Committed ${manifest().filter(m=>m.keep).length} artifacts to corporate memory. The room is closed.`, a:'close'},
-    {l:'Start a follow-up room', when:()=>S.closed, r:'Drafted “FP&A Core Room · Q4 prep” with the same roster and agents. The committed artifacts are linked as inputs.'},
+    {l:'Start a follow-up room', when:()=>S.closed, r:'Drafted “FP&A example · Q4 prep” with the same roster and agents. The committed artifacts are linked as inputs.'},
   ],
   auto:['Memorialize & close'],
   notes:['The session is checked against the charter: each objective is shown as met or not met.','Memorialize commits the final artifacts to persistent corporate memory and closes the workspace.','Promoted widgets and finished deliverables are kept. Ghost widgets that were never promoted are discarded.','The manifest shows the decision for each artifact before you commit.']},
@@ -621,7 +634,7 @@ function badge(i){
   ][i];
 }
 function renderTabs(){
-  document.getElementById('tabs').innerHTML = `<h1 class="ttl">Subject Room: <span>FP&amp;A Core Room</span></h1><div class="wf-steps">`+
+  document.getElementById('tabs').innerHTML = `<h1 class="ttl">Subject Room: <span>FP&amp;A example</span></h1><div class="wf-steps">`+
     STEPS.map((x,i)=>`${i?'<span class="wf-line"></span>':''}<button class="wf-step ${i===cur?'on':''} ${x.t?'t':''}" data-wf="${i}"><span class="wf-n">${i<maxReached&&i!==cur?'✓':i+1}</span><span class="wf-t">${x.n}<small>${badge(i)}</small></span></button>`).join('')+
     `</div><div class="sb">${(cur===2||cur===3)&&!S.closed&&!AP.on?`<span class="clock">◷ 01:24:36</span><button class="btn pri" data-wf="5">Memorialize</button>`:''}<button class="btn play" data-play title="Play walkthrough">${AP.on?(AP.paused?'▶<span class="long"> Resume</span>':'⏸<span class="long"> Pause</span>'):'▶<span class="long"> Play walkthrough</span><span class="short"> Play</span>'}</button><button class="btn ${S.drawer==='step'?'pri':''}" data-insp title="Step description">ⓘ<span class="long"> Step description</span></button></div>`;
 }
@@ -797,7 +810,7 @@ function manifest(){
 function memorialView(){
   const m=manifest(), k=m.filter(x=>x.keep).length;
   const om=objectives().filter(o=>o.met).length;
-  return `${S.closed?`<div class="banner"><span class="ic">✓</span><div><b>Session memorialized</b>${om} of 3 charter objectives met. ${k} artifacts committed to corporate memory. The FP&amp;A Core Room is closed.</div></div>`:''}
+  return `${S.closed?`<div class="banner"><span class="ic">✓</span><div><b>Session memorialized</b>${om} of 3 charter objectives met. ${k} artifacts committed to corporate memory. The FP&amp;A example room is closed.</div></div>`:''}
     ${objectivesPanel('Outcome against the charter')}
     <div class="panel"><div class="fhead"><div><div class="crumb2">End of session</div><h2>Memorialize the session</h2><p>Commit the session’s final artifacts to persistent corporate memory, then close the workspace.</p></div>
       ${S.closed?chip('bound','Committed'):`<button class="btn pri" data-pill="Memorialize &amp; close">Memorialize &amp; close</button>`}</div>
@@ -929,7 +942,7 @@ async function autoplay(){
       document.querySelector('.main').scrollTop=0; document.getElementById('canvas').scrollTop=0;
       caption(`STEP ${i+1} OF ${STEPS.length}`, `<b>${STEPS[i].title}</b>`);
       showOv(i);
-      await hold(2500+1400*STEPS[i].notes.length,tok,f=>{ const b=document.getElementById('ovbar'); if(b) b.style.width=Math.round(f*100)+'%'; });
+      await hold(4000+2000*STEPS[i].notes.length,tok,f=>{ const b=document.getElementById('ovbar'); if(b) b.style.width=Math.round(f*100)+'%'; });
       hideOv(); await hold(500,tok); AP.done++;
       for(const l of STEPS[i].auto){
         if (isM()){ setPane('chat'); await hold(400,tok); }
