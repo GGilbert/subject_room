@@ -279,10 +279,28 @@ tr.changed td{background:rgba(25,194,160,.06)}
 .mbox .mb{padding:24px 26px;display:flex;flex-direction:column;gap:14px}
 .mbox h2{font-size:22px}
 .mbox p{color:#c2cee0;line-height:1.55;font-size:14px}
-.mflow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.mflow span{border:1px solid var(--line2);border-radius:12px;padding:3px 9px;color:#c9d4e5}
+.mflow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mflow .fs{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#c9d4e5;white-space:nowrap}
+.mflow .fs i{font-style:normal;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11px;background:#103447;color:#7ee8f5;flex-shrink:0}
+.mflow .ar{flex:1;min-width:12px;height:2px;background:var(--line2)}
 .mact{display:flex;gap:10px;padding:16px 26px;border-top:1px solid var(--line)}
 .mact .btn{flex:1;padding:12px;font-size:13px}
+.mtip{font-size:12.5px;color:var(--muted)}
+@media (min-width:1024px){
+  .mbox{width:min(1080px,92vw);border-radius:16px}
+  .mbox .mb{padding:40px 44px 36px;gap:22px}
+  .mbox .dl{font-size:12px}
+  .mbox h2{font-size:34px;letter-spacing:-.01em}
+  .mbox p{font-size:18px;line-height:1.6;max-width:780px}
+  .mflow{flex-wrap:nowrap;gap:8px;padding:18px 18px;background:#0d1629;border:1px solid var(--line);border-radius:12px}
+  .mflow .fs{font-size:clamp(12.5px,1.2vw,15px)}
+  .mflow .fs i{width:clamp(24px,2.4vw,30px);height:clamp(24px,2.4vw,30px);font-size:12.5px}
+  .mflow .ar{min-width:8px}
+  .mact{padding:22px 44px 28px}
+  .mtip{font-size:14.5px}
+  .mact{padding:22px 48px 28px;gap:14px}
+  .mact .btn{padding:16px;font-size:15px;border-radius:8px}
+}
 </style>
 </head>
 <body>
@@ -318,10 +336,10 @@ tr.changed td{background:rgba(25,194,160,.06)}
     <div class="mb">
       <div class="dl" style="color:var(--teal)">OSL CAST · SUBJECT ROOM WALKTHROUGH</div>
       <h2>Welcome to the Subject Room</h2>
-      <p>A <b>Subject Room</b> is a short-lived, shared workspace where people and AI agents work on one business question together. This one, the FP&amp;A Core Room, looks at why EMEA margins fell short in Q3.</p>
-      <p>The walkthrough follows one session from start to finish. On the left, an AI <b>Room Manager</b> guides the work in conversation. The <b style="color:#ffd3a0">✦ orange suggestions</b> under the chat are the next steps you can take.</p>
-      <div class="mflow"><span>1 Agree purpose</span>›<span>2 Configure room</span>›<span>3 Run session</span>›<span>4 Private sandbox</span>›<span>5 Monitor</span>›<span>6 Memorialize</span></div>
-      <p style="font-size:12.5px;color:var(--muted)">No experience needed. You can pause the walkthrough at any time, open “ⓘ Step description” for an explanation of each step, or move with the ← → keys.</p>
+      <p>A <b>Subject Room</b> is a shared workspace where people and AI agents work on one business question together. Here, the question is why EMEA margins fell short in Q3.</p>
+      <p>An AI <b>Room Manager</b> guides you in conversation. Click the <b style="color:#ffd3a0">✦ orange suggestions</b> to take the next step.</p>
+      <div class="mflow"><span class="fs"><i>1</i>Agree purpose</span><span class="ar"></span><span class="fs"><i>2</i>Configure room</span><span class="ar"></span><span class="fs"><i>3</i>Run session</span><span class="ar"></span><span class="fs"><i>4</i>Private sandbox</span><span class="ar"></span><span class="fs"><i>5</i>Monitor</span><span class="ar"></span><span class="fs"><i>6</i>Memorialize</span></div>
+      <div class="mtip">No experience needed. Pause at any time, or move between steps with the ← → keys.</div>
     </div>
     <div class="mact"><button class="btn" data-explore>Explore at my own pace</button><button class="btn play" data-play-start>▶ Play the walkthrough (about 2 min)</button></div>
   </div>
